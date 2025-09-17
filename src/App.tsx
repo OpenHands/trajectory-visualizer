@@ -295,21 +295,20 @@ const App: React.FC<{ router?: boolean }> = ({ router = true }) => {
     // Check if it's an array (OpenHands trajectory format)
     if (Array.isArray(data)) {
       // Check if it has OpenHands specific fields
-      if (data.length > 0 && 
-          (('action' in data[0] && 'source' in data[0]) || 
+      if (data.length > 0 &&
+          (('action' in data[0] && 'source' in data[0]) ||
            ('observation' in data[0] && 'source' in data[0]))) {
-        console.log('Detected OpenHands trajectory format');
-        
-        // Convert to JSONL format for the JsonlViewer
-        const jsonlContent = JSON.stringify({ history: data });
+        console.log('Detected OpenHands trajectory format - using trajectory viewer');
+
+        // Return as trajectory data for the trajectory viewer
         return {
           content: {
-            jsonlContent,
-            fileType: 'jsonl'
+            trajectoryData: data,
+            fileType: 'trajectory'
           }
         };
       }
-      
+
       // For other array formats
       return {
         content: {
@@ -334,14 +333,13 @@ const App: React.FC<{ router?: boolean }> = ({ router = true }) => {
     
     // Check if it has history array (trajectory-visualizer format)
     if (data.history && Array.isArray(data.history)) {
-      console.log('Detected history array format');
-      
-      // Already in the right format, just convert to JSONL
-      const jsonlContent = JSON.stringify(data);
+      console.log('Detected history array format - using trajectory viewer');
+
+      // Return the history array for the trajectory viewer
       return {
         content: {
-          jsonlContent,
-          fileType: 'jsonl'
+          trajectoryData: data.history,
+          fileType: 'trajectory'
         }
       };
     }

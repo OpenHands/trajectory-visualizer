@@ -18,17 +18,13 @@ export const UploadTrajectory: React.FC<UploadTrajectoryProps> = ({
     // Check if it's an array (OpenHands trajectory format)
     if (Array.isArray(content)) {
       // Check if it has OpenHands specific fields
-      if (content.length > 0 && 
-          (('action' in content[0] && 'source' in content[0]) || 
+      if (content.length > 0 &&
+          (('action' in content[0] && 'source' in content[0]) ||
            ('observation' in content[0] && 'source' in content[0]))) {
-        console.log('Detected OpenHands trajectory format');
-        
-        // Convert to JSONL format for the JsonlViewer
-        const jsonlContent = JSON.stringify({ history: content });
-        return {
-          jsonlContent,
-          fileType: 'jsonl'
-        };
+        console.log('Detected OpenHands trajectory format - using trajectory viewer');
+
+        // Return the content directly for the trajectory viewer
+        return content;
       }
       return content;
     }
@@ -43,14 +39,10 @@ export const UploadTrajectory: React.FC<UploadTrajectoryProps> = ({
     
     // Check if it has history array (trajectory-visualizer format)
     if (content.history && Array.isArray(content.history)) {
-      console.log('Detected history array format');
-      
-      // Already in the right format, just convert to JSONL
-      const jsonlContent = JSON.stringify(content);
-      return {
-        jsonlContent,
-        fileType: 'jsonl'
-      };
+      console.log('Detected history array format - using trajectory viewer');
+
+      // Return the history array for the trajectory viewer
+      return content.history;
     }
     
     // If it's not in a recognized format, return as is and let the converter handle it

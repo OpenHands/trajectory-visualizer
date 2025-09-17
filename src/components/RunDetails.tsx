@@ -5,6 +5,7 @@ import RunDetailsSkeleton from './loading/RunDetailsSkeleton';
 import ArtifactDetails from './artifacts/ArtifactDetails';
 import RunHeader from './header/RunHeader';
 import JsonlViewer from '../components/jsonl-viewer/JsonlViewer';
+import TrajectoryList from './share/trajectory-list';
 
 interface RunDetailsProps {
   owner: string;
@@ -103,6 +104,17 @@ const RunDetails: React.FC<RunDetailsProps> = ({ owner, repo, run, initialConten
     return (
       <div className="flex flex-col h-full overflow-hidden">
         <JsonlViewer content={artifactContent.content.jsonlContent} />
+      </div>
+    );
+  }
+
+  // Check if we're dealing with trajectory data
+  if (artifactContent?.content?.fileType === 'trajectory' && artifactContent?.content?.trajectoryData) {
+    console.log('Rendering Trajectory viewer with', artifactContent.content.trajectoryData.length, 'items');
+
+    return (
+      <div className="flex flex-col h-full">
+        <TrajectoryList trajectory={artifactContent.content.trajectoryData} />
       </div>
     );
   }

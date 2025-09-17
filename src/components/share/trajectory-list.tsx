@@ -59,7 +59,7 @@ export const TrajectoryList: React.FC<TrajectoryListProps> = ({ trajectory }) =>
   return (
     <div className="flex flex-col h-full">
       {/* Trajectory Items List */}
-      <div className="flex-1 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 shadow-sm overflow-hidden">
+      <div className="flex flex-col h-full border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 shadow-sm">
         <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center">
           <h3 className="text-lg font-medium text-gray-900 dark:text-white">
             Trajectory Items ({filteredTrajectory.length} items)
