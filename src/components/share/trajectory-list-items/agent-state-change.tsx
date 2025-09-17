@@ -11,11 +11,11 @@ export const AgentStateChangeComponent: React.FC<AgentStateChangeProps> = ({ sta
   let stateText = '';
   let thought = '';
   
-  if ('args' in state) {
-    stateText = state.args.agent_state;
-    thought = state.args.thought;
-  } else if ('extras' in state) {
-    stateText = state.extras.agent_state;
+  if ('args' in state && state.args) {
+    stateText = state.args.agent_state || '';
+    thought = state.args.thought || '';
+  } else if ('extras' in state && state.extras) {
+    stateText = state.extras.agent_state || '';
   }
   
   return (
