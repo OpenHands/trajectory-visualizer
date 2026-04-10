@@ -9,6 +9,7 @@ import { WorkflowRun } from './types';
 import { UploadTrajectory } from './components/upload/UploadTrajectory';
 import { EvaluationUpload } from './components/upload/EvaluationUpload';
 import { UploadContent } from './types/upload';
+import { extractTarGz, isArchiveUrl } from './utils/archive-extractor';
 
 const TokenPrompt: React.FC<{ isDark?: boolean }> = ({ isDark = false }) => {
   const [token, setToken] = useState('');
@@ -381,6 +382,7 @@ const App: React.FC<{ router?: boolean }> = ({ router = true }) => {
         const searchParams = new URLSearchParams(location.search);
         const dataParam = searchParams.get('data');
         const fileUrlParam = searchParams.get('fileUrl');
+        const fullArchiveParam = searchParams.get('full_archive');
         
         // Process embedded data parameter
         if (dataParam) {
@@ -401,12 +403,130 @@ const App: React.FC<{ router?: boolean }> = ({ router = true }) => {
           }
         }
         
+        // Process full_archive parameter - fetch and extract tar.gz archive
+        if (fullArchiveParam) {
+          console.log('Found full_archive parameter, fetching archive from:', fullArchiveParam);
+          
+          // Show loading indicator
+          setIsLoadingTrajectory(true);
+          
+          const fetchArchive = async () => {
+            try {
+              // Try direct fetch first
+              let response = await fetch(fullArchiveParam, {
+                mode: 'cors',
+                headers: {
+                  'Accept': 'application/x-gzip, application/octet-stream, application/tar+gzip'
+                }
+              });
+              
+              // If direct fetch fails, try CORS proxy
+              if (!response.ok) {
+                console.log('Direct fetch failed, trying CORS proxy...');
+                response = await fetch(`https://cors-anywhere.herokuapp.com/${fullArchiveParam}`, {
+                  headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                  }
+                });
+              }
+              
+              if (!response.ok) {
+                throw new Error(`Failed to fetch archive: ${response.status} ${response.statusText}`);
+              }
+              
+              const arrayBuffer = await response.arrayBuffer();
+              console.log('Fetched archive, size:', arrayBuffer.byteLength);
+              
+              // Extract the archive
+              const extracted = await extractTarGz(arrayBuffer);
+              
+              if (!extracted.jsonlContent) {
+                throw new Error('No JSONL content found in archive. Files found: ' + extracted.fileNames.join(', '));
+              }
+              
+              console.log('Successfully extracted archive');
+              
+              // Create upload content from extracted data
+              const archiveContent: UploadContent = {
+                content: {
+                  fileType: 'full_archive',
+                  jsonlContent: extracted.jsonlContent,
+                  reportContent: extracted.reportContent
+                }
+              };
+              
+              setUploadedContent(archiveContent);
+            } catch (error) {
+              console.error('Failed to process full_archive:', error);
+              alert(`Failed to load archive from URL: ${error}`);
+            } finally {
+              setIsLoadingTrajectory(false);
+              // Clear the URL parameter to avoid reloading the same data
+              navigate(location.pathname, { replace: true });
+            }
+          };
+          
+          fetchArchive();
+          return;
+        }
+        
         // Process fileUrl parameter - fetch trajectory from external URL
         if (fileUrlParam) {
           console.log('Found fileUrl parameter, fetching trajectory from:', fileUrlParam);
           
           // Show loading indicator
           setIsLoadingTrajectory(true);
+          
+          // Check if this is an archive URL
+          if (isArchiveUrl(fileUrlParam)) {
+            const fetchArchive = async () => {
+              try {
+                let response = await fetch(fileUrlParam, {
+                  mode: 'cors'
+                });
+                
+                // If direct fetch fails, try CORS proxy
+                if (!response.ok) {
+                  console.log('Direct fetch failed, trying CORS proxy...');
+                  response = await fetch(`https://cors-anywhere.herokuapp.com/${fileUrlParam}`, {
+                    headers: {
+                      'X-Requested-With': 'XMLHttpRequest'
+                    }
+                  });
+                }
+                
+                if (!response.ok) {
+                  throw new Error(`Failed to fetch archive: ${response.status} ${response.statusText}`);
+                }
+                
+                const arrayBuffer = await response.arrayBuffer();
+                const extracted = await extractTarGz(arrayBuffer);
+                
+                if (!extracted.jsonlContent) {
+                  throw new Error('No JSONL content found in archive');
+                }
+                
+                const archiveContent: UploadContent = {
+                  content: {
+                    fileType: 'full_archive',
+                    jsonlContent: extracted.jsonlContent,
+                    reportContent: extracted.reportContent
+                  }
+                };
+                
+                setUploadedContent(archiveContent);
+              } catch (error) {
+                console.error('Failed to process archive:', error);
+                alert(`Failed to load archive: ${error}`);
+              } finally {
+                setIsLoadingTrajectory(false);
+                navigate(location.pathname, { replace: true });
+              }
+            };
+            
+            fetchArchive();
+            return;
+          }
           
           // Fetch the trajectory file from the provided URL
           fetch(fileUrlParam, {

@@ -108,6 +108,16 @@ const RunDetails: React.FC<RunDetailsProps> = ({ owner, repo, run, initialConten
     );
   }
 
+  // Check if we're dealing with a full_archive (tar.gz containing output.jsonl)
+  if (artifactContent?.content?.fileType === 'full_archive' && artifactContent?.content?.jsonlContent) {
+    console.log('Rendering full_archive JSONL viewer with content:', artifactContent.content.jsonlContent.substring(0, 100) + '...');
+    return (
+      <div className="flex flex-col h-full overflow-hidden">
+        <JsonlViewer content={artifactContent.content.jsonlContent} />
+      </div>
+    );
+  }
+
   // Check if we're dealing with trajectory data
   if (artifactContent?.content?.fileType === 'trajectory' && artifactContent?.content?.trajectoryData) {
     console.log('Rendering Trajectory viewer with', artifactContent.content.trajectoryData.length, 'items');
