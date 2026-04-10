@@ -38,7 +38,7 @@ export async function extractTarGz(
         result.fileNames.push(header.name);
         
         // Only process regular files
-        if (header.type === 'file' || header.type === '0') {
+        if (header.type === 'file') {
           const chunks: Uint8Array[] = [];
           stream.on('data', (chunk: Uint8Array) => chunks.push(chunk));
           stream.on('end', () => {
