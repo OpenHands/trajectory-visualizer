@@ -25,7 +25,7 @@ A modern web application for visualizing OpenHands Resolver and their execution 
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/OpenHands/trajectory-visualizer.git
+   git clone https://github.com/All-Hands-AI/trajectory-visualizer.git
    cd trajectory-visualizer
    ```
 
@@ -132,3 +132,4 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## Acknowledgments
 - GitHub for their comprehensive API
+ 

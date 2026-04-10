@@ -11,6 +11,12 @@ export interface TrajectoryUploadContent {
   trajectory?: any; // For backward compatibility
 }
 
+export interface FullArchiveUploadContent {
+  jsonlContent: string;
+  reportContent?: any;
+  fileType: 'full_archive';
+}
+
 export type UploadContent = {
-  content: JsonlUploadContent | TrajectoryUploadContent;
+  content: JsonlUploadContent | TrajectoryUploadContent | FullArchiveUploadContent;
 };
