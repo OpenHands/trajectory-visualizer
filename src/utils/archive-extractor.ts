@@ -1,4 +1,5 @@
-import JSZip from 'jszip';
+import pako from 'pako';
+import tar from 'tar-stream';
 
 export interface ExtractedArchive {
   jsonlContent: string | null;
@@ -24,59 +25,62 @@ export async function extractTarGz(
   };
 
   try {
-    // Use JSZip to load the tar.gz file
-    const zip = await JSZip.loadAsync(arrayBuffer);
+    // Decompress gzip using pako
+    const decompressedData = pako.inflate(new Uint8Array(arrayBuffer));
     
-    // Get list of all files
-    result.fileNames = Object.keys(zip.files);
-    console.log('Files in archive:', result.fileNames);
-
-    // Look for output.jsonl or similar jsonl files
-    for (const [fileName, zipEntry] of Object.entries(zip.files)) {
-      if (zipEntry.dir) continue; // Skip directories
+    // Use tar-stream to parse tar format
+    const extract = tar.extract();
+    const entries: { name: string; content: string }[] = [];
+    
+    // Collect entries from tar stream
+    await new Promise<void>((resolve, reject) => {
+      extract.on('entry', (header, stream, next) => {
+        result.fileNames.push(header.name);
+        
+        // Only process regular files
+        if (header.type === 'file' || header.type === '0') {
+          const chunks: Uint8Array[] = [];
+          stream.on('data', (chunk: Uint8Array) => chunks.push(chunk));
+          stream.on('end', () => {
+            const content = Buffer.concat(chunks).toString('utf8');
+            entries.push({ name: header.name, content });
+            next();
+          });
+        } else {
+          stream.resume();
+          stream.on('end', next);
+        }
+      });
       
-      const lowerFileName = fileName.toLowerCase();
+      extract.on('finish', resolve);
+      extract.on('error', reject);
+      
+      // Write decompressed data to the stream
+      extract.end(Buffer.from(decompressedData));
+    });
+    
+    // Process entries to find output.jsonl and output.report.json
+    for (const entry of entries) {
+      const lowerName = entry.name.toLowerCase();
       
       // Check for output.jsonl
-      if (lowerFileName.endsWith('output.jsonl') || lowerFileName === 'output.jsonl') {
-        const content = await zipEntry.async('string');
-        result.outputJsonl = content;
-        result.jsonlContent = content;
-        console.log(`Found output.jsonl in archive (${fileName}), size: ${content.length}`);
+      if (lowerName.endsWith('output.jsonl') || lowerName === 'output.jsonl') {
+        result.outputJsonl = entry.content;
+        result.jsonlContent = entry.content;
+        console.log(`Found output.jsonl in archive (${entry.name}), size: ${entry.content.length}`);
       }
       
       // Check for output.report.json
-      if (
-        lowerFileName.endsWith('output.report.json') ||
-        lowerFileName === 'output.report.json'
-      ) {
-        const content = await zipEntry.async('string');
+      if (lowerName.endsWith('output.report.json') || lowerName === 'output.report.json') {
         try {
-          result.reportContent = JSON.parse(content);
-          console.log(`Found report in archive (${fileName})`);
+          result.reportContent = JSON.parse(entry.content);
+          console.log(`Found report in archive (${entry.name})`);
         } catch (e) {
-          console.warn(`Failed to parse report JSON from ${fileName}:`, e);
+          console.warn(`Failed to parse report JSON from ${entry.name}:`, e);
         }
       }
     }
-
-    // If we found jsonl content, we're done
-    if (result.jsonlContent) {
-      return result;
-    }
-
-    // Fallback: Look for any .jsonl file in the archive
-    for (const [fileName, zipEntry] of Object.entries(zip.files)) {
-      if (zipEntry.dir) continue;
-      const lowerFileName = fileName.toLowerCase();
-      if (lowerFileName.endsWith('.jsonl')) {
-        const content = await zipEntry.async('string');
-        result.jsonlContent = content;
-        console.log(`Found .jsonl file in archive (${fileName}), size: ${content.length}`);
-        break;
-      }
-    }
-
+    
     return result;
   } catch (error) {
     console.error('Failed to extract tar.gz archive:', error);

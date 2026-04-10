@@ -1,5 +1,34 @@
 import { describe, it, expect } from 'vitest';
+import pako from 'pako';
+import pack from 'tar-stream';
 import { extractTarGz, isArchiveUrl } from '../archive-extractor';
+
+/**
+ * Creates a valid tar.gz archive with the given files
+ */
+async function createTarGz(files: { name: string; content: string }[]): Promise<ArrayBuffer> {
+  const tarPack = pack.pack();
+  
+  // Add each file to the tar archive
+  for (const file of files) {
+    tarPack.entry({ name: file.name, size: file.content.length }, file.content);
+  }
+  
+  // Finalize the tar archive
+  tarPack.finalize();
+  
+  // Collect all tar data
+  const tarChunks: Uint8Array[] = [];
+  return new Promise((resolve) => {
+    tarPack.on('data', (chunk: Uint8Array) => tarChunks.push(chunk));
+    tarPack.on('end', () => {
+      const tarData = Buffer.concat(tarChunks);
+      // Compress with gzip using pako
+      const compressed = pako.gzip(tarData);
+      resolve(compressed.buffer);
+    });
+  });
+}
 
 describe('isArchiveUrl', () => {
   it('should return true for .tar.gz URLs', () => {
@@ -32,5 +61,49 @@ describe('extractTarGz', () => {
 
     // This should throw since the data is not a valid archive
     await expect(extractTarGz(invalidBuffer)).rejects.toThrow();
+  });
+
+  it('should extract output.jsonl from a valid tar.gz archive', async () => {
+    const jsonlContent = '{"type":"test","id":1}\n{"type":"test2","id":2}';
+    
+    const archiveBuffer = await createTarGz([
+      { name: 'output.jsonl', content: jsonlContent },
+      { name: 'output.report.json', content: '{"status":"success"}' }
+    ]);
+    
+    const result = await extractTarGz(archiveBuffer);
+    
+    expect(result.jsonlContent).toBe(jsonlContent);
+    expect(result.outputJsonl).toBe(jsonlContent);
+    expect(result.reportContent).toEqual({ status: 'success' });
+    expect(result.fileNames).toContain('output.jsonl');
+    expect(result.fileNames).toContain('output.report.json');
+  });
+
+  it('should handle archives without report.json', async () => {
+    const jsonlContent = '{"test":"data"}';
+    
+    const archiveBuffer = await createTarGz([
+      { name: 'output.jsonl', content: jsonlContent }
+    ]);
+    
+    const result = await extractTarGz(archiveBuffer);
+    
+    expect(result.jsonlContent).toBe(jsonlContent);
+    expect(result.reportContent).toBeNull();
+    expect(result.fileNames).toContain('output.jsonl');
+  });
+
+  it('should handle archives with paths in filenames', async () => {
+    const jsonlContent = '{"test":"data"}';
+    
+    const archiveBuffer = await createTarGz([
+      { name: 'artifacts/output.jsonl', content: jsonlContent }
+    ]);
+    
+    const result = await extractTarGz(archiveBuffer);
+    
+    expect(result.jsonlContent).toBe(jsonlContent);
+    expect(result.fileNames).toContain('artifacts/output.jsonl');
   });
 });
