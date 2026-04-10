@@ -1,7 +1,0 @@
-{
-  "functions": {
-    "api/extract.ts": {
-      "maxDuration": 300
-    }
-  }
-}
