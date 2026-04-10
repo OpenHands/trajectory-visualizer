@@ -54,6 +54,7 @@ function parseTar(data: Uint8Array): { files: { name: string; content: string }[
   const files: { name: string; content: string }[] = [];
   let offset = 0;
   const blockSize = 512;
+  let pendingLongName: string | null = null;
 
   while (offset + blockSize <= data.length) {
     const header = parseTarHeader(data, offset);
@@ -64,11 +65,21 @@ function parseTar(data: Uint8Array): { files: { name: string; content: string }[
 
     if (header.type === 0 && header.size > 0 && header.name) {
       const fileData = data.slice(offset, offset + header.size);
-      const content = new TextDecoder('utf8').decode(fileData);
-      files.push({ name: header.name, content });
-
       const paddedSize = Math.ceil(header.size / blockSize) * blockSize;
       offset += paddedSize;
+
+      // Handle GNU tar long link extension
+      if (header.name.endsWith('@LongLink') || header.name === '././@LongLink') {
+        pendingLongName = new TextDecoder('utf8').decode(fileData).replace(/\0+$/, '');
+        continue;
+      }
+
+      // Use pending long name if available
+      const fileName = pendingLongName || header.name;
+      pendingLongName = null;
+
+      const content = new TextDecoder('utf8').decode(fileData);
+      files.push({ name: fileName, content });
     }
   }
 
@@ -121,23 +132,30 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     let jsonlContent: string | null = null;
     let reportContent: any | null = null;
 
+    console.log('Searching through', files.length, 'files...');
+
     for (const file of files) {
       const lowerName = file.name.toLowerCase();
+      console.log('File:', lowerName);
 
-      if (lowerName.endsWith('output.jsonl') || lowerName === 'output.jsonl') {
+      // Look for jsonl content anywhere in filename
+      if (lowerName.includes('output.jsonl') || lowerName.endsWith('.jsonl')) {
         jsonlContent = file.content;
         console.log('Found output.jsonl, size:', file.content.length);
       }
 
-      if (lowerName.endsWith('output.report.json') || lowerName === 'output.report.json') {
+      // Look for report content
+      if (lowerName.includes('output.report.json') || (lowerName.includes('report') && lowerName.endsWith('.json'))) {
         try {
           reportContent = JSON.parse(file.content);
-          console.log('Found output.report.json');
+          console.log('Found report JSON:', lowerName);
         } catch (e) {
           console.warn('Failed to parse report JSON:', e);
         }
       }
     }
+
+    console.log('Result - jsonl:', !!jsonlContent, 'report:', !!reportContent);
 
     return res.status(200).json({
       success: true,
