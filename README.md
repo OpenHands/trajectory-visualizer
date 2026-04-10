@@ -25,7 +25,7 @@ A modern web application for visualizing OpenHands Resolver and their execution 
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/All-Hands-AI/trajectory-visualizer.git
+   git clone https://github.com/OpenHands/trajectory-visualizer.git
    cd trajectory-visualizer
    ```
 
