@@ -309,7 +309,7 @@ const App: React.FC<{ router?: boolean }> = ({ router = true }) => {
       // If direct fetch fails, try CORS proxy
       if (!response.ok) {
         console.log('Direct fetch failed, trying CORS proxy...');
-        response = await fetch(`https://cors-anywhere.herokuapp.com/${url}`, {
+        response = await fetch(`https://api.allorigins.win/raw/${url}`, {
           headers: {
             'X-Requested-With': 'XMLHttpRequest'
           }
@@ -542,7 +542,7 @@ const App: React.FC<{ router?: boolean }> = ({ router = true }) => {
               
               // If direct fetch fails, try using a CORS proxy as fallback
               console.log('Attempting to fetch via CORS proxy...');
-              const proxyUrl = `https://cors-anywhere.herokuapp.com/${fileUrlParam}`;
+              const proxyUrl = `https://api.allorigins.win/raw/${fileUrlParam}`;
               
               return fetch(proxyUrl, {
                 headers: {
