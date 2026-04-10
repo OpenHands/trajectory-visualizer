@@ -37,19 +37,6 @@ function parseTarHeader(data: Uint8Array, offset: number): TarHeader | null {
   return { name, size, type };
 }
 
-async function decompressGzip(arrayBuffer: ArrayBuffer): Promise<Uint8Array> {
-  const stream = new ReadableStream({
-    start(controller) {
-      controller.enqueue(new Uint8Array(arrayBuffer));
-      controller.close();
-    }
-  });
-
-  const decompressedStream = stream.pipeThrough(new DecompressionStream('gzip'));
-  const result = await new Response(decompressedStream).arrayBuffer();
-  return new Uint8Array(result);
-}
-
 function parseTar(data: Uint8Array): { files: { name: string; content: string }[] } {
   const files: { name: string; content: string }[] = [];
   let offset = 0;
@@ -86,6 +73,12 @@ function parseTar(data: Uint8Array): { files: { name: string; content: string }[
   return { files };
 }
 
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+};
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Only allow GET requests
   if (req.method !== 'GET') {
@@ -107,19 +100,53 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     console.log('Fetching archive from:', url);
 
-    // Fetch the archive server-side
-    const response = await fetch(url);
+    // Set timeout for fetch
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 300000); // 5 min timeout
+
+    // Fetch the archive server-side with streaming
+    const response = await fetch(url, {
+      signal: controller.signal,
+      headers: {
+        'Accept-Encoding': 'gzip, deflate',
+      }
+    });
+
+    clearTimeout(timeout);
 
     if (!response.ok) {
       throw new Error(`Failed to fetch: ${response.status} ${response.statusText}`);
     }
 
-    const arrayBuffer = await response.arrayBuffer();
+    // Get content length for logging
+    const contentLength = response.headers.get('content-length');
+    console.log('Downloading archive, size:', contentLength);
 
-    console.log('Downloaded archive, size:', arrayBuffer.byteLength);
+    // Stream and decompress
+    if (!response.body) {
+      throw new Error('Response body is null');
+    }
 
-    // Decompress gzip
-    const decompressed = await decompressGzip(arrayBuffer);
+    const decompressedStream = response.body.pipeThrough(new DecompressionStream('gzip'));
+    const reader = decompressedStream.getReader();
+    
+    const chunks: Uint8Array[] = [];
+    let totalSize = 0;
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      chunks.push(value);
+      totalSize += value.length;
+    }
+
+    // Combine all chunks
+    const decompressed = new Uint8Array(totalSize);
+    let offset = 0;
+    for (const chunk of chunks) {
+      decompressed.set(chunk, offset);
+      offset += chunk.length;
+    }
 
     console.log('Decompressed, size:', decompressed.length);
 
