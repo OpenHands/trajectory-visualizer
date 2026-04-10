@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import pako from 'pako';
 
 interface TarHeader {
   name: string;
@@ -73,12 +74,6 @@ function parseTar(data: Uint8Array): { files: { name: string; content: string }[
   return { files };
 }
 
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-};
-
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Only allow GET requests
   if (req.method !== 'GET') {
@@ -104,12 +99,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 300000); // 5 min timeout
 
-    // Fetch the archive server-side with streaming
+    // Fetch the archive
     const response = await fetch(url, {
-      signal: controller.signal,
-      headers: {
-        'Accept-Encoding': 'gzip, deflate',
-      }
+      signal: controller.signal
     });
 
     clearTimeout(timeout);
@@ -122,30 +114,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const contentLength = response.headers.get('content-length');
     console.log('Downloading archive, size:', contentLength);
 
-    // Stream and decompress
-    if (!response.body) {
-      throw new Error('Response body is null');
-    }
-
-    const decompressedStream = response.body.pipeThrough(new DecompressionStream('gzip'));
-    const reader = decompressedStream.getReader();
+    // Read as array buffer
+    const arrayBuffer = await response.arrayBuffer();
+    const gzippedData = new Uint8Array(arrayBuffer);
     
-    const chunks: Uint8Array[] = [];
-    let totalSize = 0;
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      chunks.push(value);
-      totalSize += value.length;
-    }
-
-    // Combine all chunks
-    const decompressed = new Uint8Array(totalSize);
-    let offset = 0;
-    for (const chunk of chunks) {
-      decompressed.set(chunk, offset);
-      offset += chunk.length;
+    console.log('Decompressing gzip...');
+    
+    // Use pako for decompression
+    let decompressed: Uint8Array;
+    try {
+      const result = pako.ungzip(gzippedData);
+      decompressed = result instanceof Uint8Array ? result : new Uint8Array(result);
+    } catch (e) {
+      // Try as raw deflate if ungzip fails
+      const result = pako.inflate(gzippedData);
+      decompressed = result instanceof Uint8Array ? result : new Uint8Array(result);
     }
 
     console.log('Decompressed, size:', decompressed.length);
@@ -163,7 +146,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     for (const file of files) {
       const lowerName = file.name.toLowerCase();
-      console.log('File:', lowerName);
 
       // Look for jsonl content anywhere in filename
       if (lowerName.includes('output.jsonl') || lowerName.endsWith('.jsonl')) {
