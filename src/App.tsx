@@ -9,7 +9,7 @@ import { WorkflowRun } from './types';
 import { UploadTrajectory } from './components/upload/UploadTrajectory';
 import { EvaluationUpload } from './components/upload/EvaluationUpload';
 import { UploadContent } from './types/upload';
-import { extractTarGz, isArchiveUrl } from './utils/archive-extractor';
+import { isArchiveUrl } from './utils/archive-extractor';
 
 const TokenPrompt: React.FC<{ isDark?: boolean }> = ({ isDark = false }) => {
   const [token, setToken] = useState('');
@@ -296,48 +296,34 @@ const App: React.FC<{ router?: boolean }> = ({ router = true }) => {
   const [archiveError, setArchiveError] = useState<string | null>(null);
   
   // Reusable function to fetch and extract archive
-  const fetchAndExtractArchive = async (url: string): Promise<UploadContent | null> => {
+const fetchAndExtractArchive = async (url: string): Promise<UploadContent | null> => {
     try {
-      // Try direct fetch first
-      let response = await fetch(url, {
-        mode: 'cors',
-        headers: {
-          'Accept': 'application/x-gzip, application/octet-stream, application/tar+gzip'
-        }
-      });
-      
-      // If direct fetch fails, try CORS proxy
+      // Use serverless API to fetch and extract (bypasses CORS)
+      const apiUrl = `/api/extract?url=${encodeURIComponent(url)}`;
+      console.log('Fetching archive via API:', apiUrl);
+
+      const response = await fetch(apiUrl);
+
       if (!response.ok) {
-        console.log('Direct fetch failed, trying CORS proxy...');
-        response = await fetch(`https://api.allorigins.win/raw/${url}`, {
-          headers: {
-            'X-Requested-With': 'XMLHttpRequest'
-          }
-        });
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Failed to extract archive: ${response.status}`);
       }
-      
-      if (!response.ok) {
-        throw new Error(`Failed to fetch archive: ${response.status} ${response.statusText}`);
+
+      const data = await response.json();
+      console.log('API response:', data);
+
+      if (!data.jsonlContent) {
+        throw new Error('No JSONL content found in archive. Files found: ' + (data.fileNames || []).join(', '));
       }
-      
-      const arrayBuffer = await response.arrayBuffer();
-      console.log('Fetched archive, size:', arrayBuffer.byteLength);
-      
-      // Extract the archive
-      const extracted = await extractTarGz(arrayBuffer);
-      
-      if (!extracted.jsonlContent) {
-        throw new Error('No JSONL content found in archive. Files found: ' + extracted.fileNames.join(', '));
-      }
-      
-      console.log('Successfully extracted archive');
-      
+
+      console.log('Successfully extracted archive via serverless API');
+
       // Create upload content from extracted data
       return {
         content: {
           fileType: 'full_archive' as const,
-          jsonlContent: extracted.jsonlContent,
-          reportContent: extracted.reportContent
+          jsonlContent: data.jsonlContent,
+          reportContent: data.reportContent
         }
       };
     } catch (error) {
