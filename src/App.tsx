@@ -9,9 +9,6 @@ import { WorkflowRun } from './types';
 import { UploadTrajectory } from './components/upload/UploadTrajectory';
 import { EvaluationUpload } from './components/upload/EvaluationUpload';
 import { UploadContent } from './types/upload';
-import { isArchiveUrl } from './utils/archive-extractor';
-import pako from 'pako';
-import { extractFromTar } from './lib/tarExtractor';
 
 const TokenPrompt: React.FC<{ isDark?: boolean }> = ({ isDark = false }) => {
   const [token, setToken] = useState('');
@@ -290,50 +287,8 @@ const App: React.FC<{ router?: boolean }> = ({ router = true }) => {
   const navigationRef = useRef({
     navigating: false,
     initialNavigationDone: false,
-    loadCount: 0,
-    archiveFetched: false // Track if we've already fetched the archive
+    loadCount: 0
   });
-  
-  // Error state for archive loading
-  const [archiveError, setArchiveError] = useState<string | null>(null);
-  
-  // Reusable function to fetch and extract archive
-const fetchAndExtractArchive = async (url: string): Promise<UploadContent | null> => {
-    // Extract tar.gz entirely in browser
-    console.log('Fetching and extracting archive in browser:', url);
-    
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(`Failed to fetch archive: ${response.status} ${response.statusText}`);
-    }
-
-    const arrayBuffer = await response.arrayBuffer();
-    const gzippedData = new Uint8Array(arrayBuffer);
-    
-    console.log('Decompressing gzip...');
-    let decompressed: Uint8Array;
-    try {
-      decompressed = pako.ungzip(gzippedData);
-    } catch {
-      decompressed = pako.inflate(gzippedData);
-    }
-    
-    console.log('Extracting from tar...');
-    const { jsonlContent, reportContent } = extractFromTar(decompressed);
-    
-    if (!jsonlContent) {
-      throw new Error('No JSONL content found in archive');
-    }
-
-    console.log('Successfully extracted archive');
-    return {
-      content: {
-        fileType: 'full_archive' as const,
-        jsonlContent,
-        reportContent
-      }
-    };
-  };
   
   // Function to process trajectory data based on its format
   const processTrajectoryData = (data: any): UploadContent => {
@@ -426,7 +381,6 @@ const fetchAndExtractArchive = async (url: string): Promise<UploadContent | null
         const searchParams = new URLSearchParams(location.search);
         const dataParam = searchParams.get('data');
         const fileUrlParam = searchParams.get('fileUrl');
-        const fullArchiveParam = searchParams.get('full_archive');
         
         // Process embedded data parameter
         if (dataParam) {
@@ -447,65 +401,11 @@ const fetchAndExtractArchive = async (url: string): Promise<UploadContent | null
           }
         }
         
-        // Process full_archive parameter - fetch and extract tar.gz archive
-        if (fullArchiveParam && !navigationRef.current.archiveFetched) {
-          console.log('Found full_archive parameter, fetching archive from:', fullArchiveParam);
-          
-          // Mark as fetched to prevent re-fetching
-          navigationRef.current.archiveFetched = true;
-          
-          // Show loading indicator
-          setIsLoadingTrajectory(true);
-          setArchiveError(null);
-          
-          fetchAndExtractArchive(fullArchiveParam)
-            .then((archiveContent) => {
-              if (archiveContent) {
-                setUploadedContent(archiveContent);
-              }
-            })
-            .catch((error) => {
-              console.error('Failed to process full_archive:', error);
-              setArchiveError(`Failed to load archive from URL: ${error}`);
-            })
-            .finally(() => {
-              setIsLoadingTrajectory(false);
-            });
-          
-          return;
-        }
         
         // Process fileUrl parameter - fetch trajectory from external URL
         if (fileUrlParam) {
           console.log('Found fileUrl parameter, fetching trajectory from:', fileUrlParam);
           
-          // Check if this is an archive URL - use shared function
-          if (isArchiveUrl(fileUrlParam)) {
-            // Don't re-fetch if we've already fetched an archive
-            if (navigationRef.current.archiveFetched) {
-              return;
-            }
-            navigationRef.current.archiveFetched = true;
-            
-            setIsLoadingTrajectory(true);
-            setArchiveError(null);
-            
-            fetchAndExtractArchive(fileUrlParam)
-              .then((archiveContent) => {
-                if (archiveContent) {
-                  setUploadedContent(archiveContent);
-                }
-              })
-              .catch((error) => {
-                console.error('Failed to process archive:', error);
-                setArchiveError(`Failed to load archive: ${error}`);
-              })
-              .finally(() => {
-                setIsLoadingTrajectory(false);
-              });
-            
-            return;
-          }
           
           // Fetch the trajectory file from the provided URL
           fetch(fileUrlParam, {
@@ -612,26 +512,6 @@ const fetchAndExtractArchive = async (url: string): Promise<UploadContent | null
         {/* Show loading overlay when processing trajectory */}
         {isLoadingTrajectory && <TrajectoryLoadingOverlay />}
         
-        {/* Archive error banner */}
-        {archiveError && (
-          <div className={`${isDark ? 'bg-red-900/30 border-red-700 text-red-300' : 'bg-red-50 border-red-200 text-red-700'} border-l-4 p-4 flex items-center justify-between`}>
-            <div className="flex items-center">
-              <svg className="h-5 w-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <span>{archiveError}</span>
-            </div>
-            <button
-              onClick={() => setArchiveError(null)}
-              className={`${isDark ? 'text-red-400 hover:text-red-300' : 'text-red-600 hover:text-red-500'}`}
-              aria-label="Dismiss"
-            >
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-        )}
         
         {/* Header */}
         <header className={`${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} border-b`}>

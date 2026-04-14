@@ -1,5 +1,7 @@
 import pako from 'pako';
 
+const MAX_ARCHIVE_SIZE = 500 * 1024 * 1024; // 500MB max
+
 function parseTarHeader(data: Uint8Array, offset: number): { name: string; size: number; type: number } | null {
   let isNull = true;
   for (let i = 0; i < 512; i++) {
@@ -24,12 +26,27 @@ function parseTarHeader(data: Uint8Array, offset: number): { name: string; size:
   const name = getString(offset, 100).trim();
   const sizeStr = getString(offset + 124, 12);
   const size = parseInt(sizeStr, 8);
+  
+  // Validate size - NaN or negative sizes indicate malformed headers
+  if (isNaN(size) || size < 0) {
+    return null;
+  }
+  
+  // Sanity check: size should not exceed remaining data
+  if (offset + 512 + size > data.length) {
+    return null;
+  }
+
   const typeChar = getString(offset + 156, 1);
   const type = typeChar === '5' ? 5 : 0;
 
   return { name, size, type };
 }
 
+/**
+ * Extract output.jsonl and output.report.json from a tar.gz archive.
+ * Validates archive size and handles malformed entries gracefully.
+ */
 export function extractFromTar(data: Uint8Array): { jsonlContent: string | null; reportContent: any | null } {
   const blockSize = 512;
   let offset = 0;
@@ -37,19 +54,11 @@ export function extractFromTar(data: Uint8Array): { jsonlContent: string | null;
   let jsonlContent: string | null = null;
   let reportContent: any | null = null;
   let largestJsonlSize = 0;
-  let filesScanned = 0;
-  let jsonlFilesFound: string[] = [];
-
-  console.log('[tarExtractor] Starting extraction, data size:', data.length);
 
   while (offset + blockSize <= data.length) {
     const header = parseTarHeader(data, offset);
-    if (header === null) {
-      console.log('[tarExtractor] Null header at offset', offset, '- scanned', filesScanned, 'files');
-      break;
-    }
+    if (header === null) break;
 
-    filesScanned++;
     offset += blockSize;
 
     if (header.type === 0 && header.size > 0 && header.name) {
@@ -62,32 +71,24 @@ export function extractFromTar(data: Uint8Array): { jsonlContent: string | null;
         pendingLongName = null;
         const lowerName = fileName.toLowerCase();
 
-        // Only extract if it's a file we need
-        // Match only output.jsonl (main results) - not errors, costs, timelines, critic attempts
+        // Match output.jsonl (main results) - exclude auxiliary files
         const isJsonl = lowerName.endsWith('/output.jsonl') || 
                         lowerName === 'output.jsonl' ||
                         (lowerName.includes('output.jsonl') && !lowerName.includes('errors') && !lowerName.includes('cost') && !lowerName.includes('timeline') && !lowerName.includes('critic'));
         const isReport = lowerName.includes('output.report.json') || (lowerName.includes('report') && lowerName.endsWith('.json'));
 
-        if (isJsonl) {
-          jsonlFilesFound.push(fileName);
-          console.log(`[tarExtractor] JSONL match: ${fileName} (${header.size} bytes)`);
-        }
-
         if (isJsonl || isReport) {
           const content = new TextDecoder('utf8').decode(data.slice(offset, offset + header.size));
           
           if (isJsonl && header.size > largestJsonlSize) {
-            console.log(`[tarExtractor] Found larger JSONL: ${header.size} bytes (was ${largestJsonlSize})`);
             jsonlContent = content;
             largestJsonlSize = header.size;
           }
           if (isReport) {
             try {
               reportContent = JSON.parse(content);
-              console.log(`[tarExtractor] Found report`);
-            } catch (e) {
-              console.warn('Failed to parse report JSON');
+            } catch {
+              // Ignore malformed JSON in report
             }
           }
         }
@@ -96,34 +97,29 @@ export function extractFromTar(data: Uint8Array): { jsonlContent: string | null;
       offset += paddedSize;
     }
 
-    // Early exit if we found both files with meaningful content
+    // Early exit if we found both files with sufficient content
     if (jsonlContent && reportContent && largestJsonlSize > 100000) {
-      console.log('[tarExtractor] Found both files, sufficient JSONL size, exiting early');
       break;
     }
   }
 
-  console.log('[tarExtractor] Scan complete. Files scanned:', filesScanned);
-  console.log('[tarExtractor] JSONL files found:', jsonlFilesFound.length, jsonlFilesFound);
-  console.log('[tarExtractor] Final result: jsonlContent length =', jsonlContent?.length || 0, ', hasReport =', !!reportContent);
-
   return { jsonlContent, reportContent };
 }
 
-export async function fetchAndExtractTarGz(url: string): Promise<{ jsonlContent: string | null; reportContent: any | null }> {
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error(`Failed to fetch: ${response.status} ${response.statusText}`);
+/**
+ * Decompress and extract data from a tar.gz archive.
+ * Validates size and throws for oversized files.
+ */
+export async function decompressTarGz(data: Uint8Array): Promise<{ jsonlContent: string | null; reportContent: any | null }> {
+  if (data.length > MAX_ARCHIVE_SIZE) {
+    throw new Error(`Archive too large: ${(data.length / 1024 / 1024).toFixed(1)}MB exceeds ${MAX_ARCHIVE_SIZE / 1024 / 1024}MB limit`);
   }
-
-  const arrayBuffer = await response.arrayBuffer();
-  const gzippedData = new Uint8Array(arrayBuffer);
   
   let decompressed: Uint8Array;
   try {
-    decompressed = pako.ungzip(gzippedData);
+    decompressed = pako.ungzip(data);
   } catch {
-    decompressed = pako.inflate(gzippedData);
+    decompressed = pako.inflate(data);
   }
   
   return extractFromTar(decompressed);
