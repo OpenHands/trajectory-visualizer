@@ -68,6 +68,7 @@ const JsonlViewer: React.FC<JsonlViewerProps> = ({ content }) => {
   const [settings, setSettings] = useState<JsonlViewerSettingsType>(DEFAULT_JSONL_VIEWER_SETTINGS);
   const [originalEntries, setOriginalEntries] = useState<JsonlEntry[]>([]);
   const [searchParams, setSearchParams] = useSearchParams();
+  const [openMenuIndex, setOpenMenuIndex] = useState<number | null>(null);
   const trajectoryRef = useRef<HTMLDivElement>(null);
   const isInitialLoad = useRef(true);
 
@@ -398,84 +399,103 @@ const JsonlViewer: React.FC<JsonlViewerProps> = ({ content }) => {
                   {filteredTrajectoryItems.map((item, index) => {
                     const trajectoryItem = item as unknown as TrajectoryItem;
                     
-                    // Helper function to copy link for trajectory step
-                    const copyLink = () => {
-                      const instanceId = entries[currentEntryIndex]?.instance_id;
-                      const stepId = index.toString();
-                      const baseUrl = window.location.href.split('?')[0];
-                      const url = `${baseUrl}?instance_id=${encodeURIComponent(instanceId || '')}&trajectory_step=${stepId}`;
-                      navigator.clipboard.writeText(url).then(() => {
-                        // Show a temporary success indicator
-                        alert('Link copied to clipboard!');
-                      }).catch(err => {
-                        console.error('Failed to copy link:', err);
-                      });
-                    };
-
-                    // Wrap trajectory items with ID and copy link button
-                    const wrapWithWrapper = (element: React.ReactNode) => (
-                      <div id={`trajectory-step-${index}`} className="relative group w-full max-w-[1000px]">
+                    // Wrap trajectory items with ID and menu button
+                    const wrapWithWrapper = (element: React.ReactNode, idx: number) => (
+                      <div id={`trajectory-step-${idx}`} className="relative group w-full max-w-[1000px]">
                         {element}
-                        {/* Copy link button */}
-                        <button
-                          onClick={copyLink}
-                          className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded text-gray-600 dark:text-gray-300"
-                          title="Copy link to this step"
-                        >
-                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
-                          </svg>
-                        </button>
+                        {/* ... menu for trajectory step */}
+                        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="relative">
+                            <button
+                              className="p-1.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded text-gray-600 dark:text-gray-300"
+                              title="More options"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setOpenMenuIndex(openMenuIndex === idx ? null : idx);
+                              }}
+                            >
+                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                              </svg>
+                            </button>
+                            {/* Dropdown menu */}
+                            {openMenuIndex === idx && (
+                              <div className="absolute right-0 top-8 z-10 min-w-[140px] bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg py-1">
+                                <button
+                                  className="w-full px-3 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    const instanceId = entries[currentEntryIndex]?.instance_id;
+                                    const stepId = idx.toString();
+                                    const baseUrl = window.location.href.split('?')[0];
+                                    const url = `${baseUrl}?instance_id=${encodeURIComponent(instanceId || '')}&trajectory_step=${stepId}`;
+                                    navigator.clipboard.writeText(url).then(() => {
+                                      alert('Link copied to clipboard!');
+                                    }).catch(err => {
+                                      console.error('Failed to copy link:', err);
+                                    });
+                                    setOpenMenuIndex(null);
+                                  }}
+                                >
+                                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+                                  </svg>
+                                  Copy link
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
                       </div>
                     );
                     
                     // Check OpenHands history format first
                     if (isAgentContextEvent(item)) {
                       // Show agent context with skills as a dedicated component
-                      return wrapWithWrapper(<AgentContextComponent key={index} data={item} timestamp={item.timestamp} />);
+                      return wrapWithWrapper(<AgentContextComponent key={index} data={item} timestamp={item.timestamp} />, index);
                     } else if (isEnvironmentEvent(item)) {
-                      return wrapWithWrapper(<EnvironmentEventComponent key={index} event={item} />);
+                      return wrapWithWrapper(<EnvironmentEventComponent key={index} event={item} />, index);
                     } else if (isSystemPrompt(item)) {
-                      return wrapWithWrapper(<SystemPromptComponent key={index} data={item} />);
+                      return wrapWithWrapper(<SystemPromptComponent key={index} data={item} />, index);
                     } else if (isUserLLMMessage(item)) {
-                      return wrapWithWrapper(<UserLLMMessageComponent key={index} message={item} />);
+                      return wrapWithWrapper(<UserLLMMessageComponent key={index} message={item} />, index);
                     } else if (isAgentThought(item)) {
-                      return wrapWithWrapper(<AgentThoughtComponent key={index} thought={item} />);
+                      return wrapWithWrapper(<AgentThoughtComponent key={index} thought={item} />, index);
                     } else if (isAgentAction(item)) {
-                      return wrapWithWrapper(<AgentActionComponent key={index} action={item} />);
+                      return wrapWithWrapper(<AgentActionComponent key={index} action={item} />, index);
                     }
                     
                     // Then check standard format
                     if (isAgentStateChange(trajectoryItem)) {
-                      return wrapWithWrapper(<AgentStateChangeComponent key={index} state={trajectoryItem as any} />);
+                      return wrapWithWrapper(<AgentStateChangeComponent key={index} state={trajectoryItem as any} />, index);
                     } else if (isUserMessage(trajectoryItem)) {
-                      return wrapWithWrapper(<UserMessageComponent key={index} message={trajectoryItem as any} />);
+                      return wrapWithWrapper(<UserMessageComponent key={index} message={trajectoryItem as any} />, index);
                     } else if (isAssistantMessage(trajectoryItem)) {
-                      return wrapWithWrapper(<AssistantMessageComponent key={index} message={trajectoryItem as any} />);
+                      return wrapWithWrapper(<AssistantMessageComponent key={index} message={trajectoryItem as any} />, index);
                     } else if (isCommandAction(trajectoryItem)) {
-                      return wrapWithWrapper(<CommandActionComponent key={index} command={trajectoryItem as any} />);
+                      return wrapWithWrapper(<CommandActionComponent key={index} command={trajectoryItem as any} />, index);
                     } else if (isCommandObservation(trajectoryItem)) {
-                      return wrapWithWrapper(<CommandObservationComponent key={index} observation={trajectoryItem as any} />);
+                      return wrapWithWrapper(<CommandObservationComponent key={index} observation={trajectoryItem as any} />, index);
                     } else if (isIPythonAction(trajectoryItem)) {
-                      return wrapWithWrapper(<IPythonActionComponent key={index} action={trajectoryItem as any} />);
+                      return wrapWithWrapper(<IPythonActionComponent key={index} action={trajectoryItem as any} />, index);
                     } else if (isIPythonObservation(trajectoryItem)) {
-                      return wrapWithWrapper(<IPythonObservationComponent key={index} observation={trajectoryItem as any} />);
+                      return wrapWithWrapper(<IPythonObservationComponent key={index} observation={trajectoryItem as any} />, index);
                     } else if (isFinishAction(trajectoryItem)) {
-                      return wrapWithWrapper(<FinishActionComponent key={index} action={trajectoryItem as any} />);
+                      return wrapWithWrapper(<FinishActionComponent key={index} action={trajectoryItem as any} />, index);
                     } else if (isErrorObservation(trajectoryItem)) {
-                      return wrapWithWrapper(<ErrorObservationComponent key={index} observation={trajectoryItem as any} />);
+                      return wrapWithWrapper(<ErrorObservationComponent key={index} observation={trajectoryItem as any} />, index);
                     } else if (isReadAction(trajectoryItem)) {
-                      return wrapWithWrapper(<ReadActionComponent key={index} item={trajectoryItem as any} />);
+                      return wrapWithWrapper(<ReadActionComponent key={index} item={trajectoryItem as any} />, index);
                     } else if (isReadObservation(trajectoryItem)) {
-                      return wrapWithWrapper(<ReadObservationComponent key={index} observation={trajectoryItem as any} />);
+                      return wrapWithWrapper(<ReadObservationComponent key={index} observation={trajectoryItem as any} />, index);
                     } else if (isEditAction(trajectoryItem)) {
-                      return wrapWithWrapper(<EditActionComponent key={index} item={trajectoryItem as any} />);
+                      return wrapWithWrapper(<EditActionComponent key={index} item={trajectoryItem as any} />, index);
                     } else if (isEditObservation(trajectoryItem)) {
-                      return wrapWithWrapper(<EditObservationComponent key={index} observation={trajectoryItem as any} />);
+                      return wrapWithWrapper(<EditObservationComponent key={index} observation={trajectoryItem as any} />, index);
                     } else if (isThinkAction(trajectoryItem)) {
-                      return wrapWithWrapper(<ThinkActionComponent key={index} action={trajectoryItem as any} />);
+                      return wrapWithWrapper(<ThinkActionComponent key={index} action={trajectoryItem as any} />, index);
                     } else if (isThinkObservation(trajectoryItem)) {
-                      return wrapWithWrapper(<ThinkObservationComponent key={index} observation={trajectoryItem as any} />);
+                      return wrapWithWrapper(<ThinkObservationComponent key={index} observation={trajectoryItem as any} />, index);
                     } else {
                       return wrapWithWrapper(
                         <TrajectoryCard key={index}>
