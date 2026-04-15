@@ -116,6 +116,7 @@ interface TrajectoryCardHeaderProps {
 }
 
 const TrajectoryCardHeader: React.FC<TrajectoryCardHeaderProps> = ({ children, className, timestamp, extra, onToggleClick }) => {
+  console.log('TrajectoryCardHeader rendering:', { timestamp, extra: !!extra, onToggleClick: !!onToggleClick });
   return (
     <div
       className={clsx(
