@@ -1,18 +1,17 @@
 import React from 'react';
 import { CSyntaxHighlighter } from "../../syntax-highlighter";
 import { TrajectoryCard } from "../trajectory-card";
+import JsonVisualizer from "../../json-visualizer/JsonVisualizer";
 
 interface EnvironmentEventProps {
   event: any;
 }
 
 export const EnvironmentEventComponent: React.FC<EnvironmentEventProps> = ({ event }) => {
+  const isFullState = event.key === 'full_state' && event.value?.agent;
+
   const formatValue = (value: any): string => {
     if (typeof value === 'object') {
-      // For specific keys, format nicely
-      if (event.key === 'full_state' && value.agent) {
-        return `Agent: ${value.agent?.llm?.model || 'unknown'}`;
-      }
       return JSON.stringify(value, null, 2);
     }
     return String(value);
@@ -23,6 +22,15 @@ export const EnvironmentEventComponent: React.FC<EnvironmentEventProps> = ({ eve
       return `State: ${event.value?.execution_status || 'unknown'}`;
     }
     return event.key || 'Environment Event';
+  };
+
+  const getSummary = () => {
+    if (isFullState) {
+      const agent = event.value.agent;
+      const skillsCount = agent?.agent_context?.skills?.length || 0;
+      return `Agent: ${agent?.llm?.model || 'unknown'} | Skills: ${skillsCount}`;
+    }
+    return null;
   };
 
   return (
@@ -38,9 +46,22 @@ export const EnvironmentEventComponent: React.FC<EnvironmentEventProps> = ({ eve
         <div className="text-xs text-gray-500 mb-2">
           Key: <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">{event.key}</code>
         </div>
-        <CSyntaxHighlighter language="json">
-          {formatValue(event.value)}
-        </CSyntaxHighlighter>
+        {isFullState ? (
+          <>
+            <div className="text-sm text-gray-700 dark:text-gray-300 mb-2 font-medium">
+              {getSummary()}
+            </div>
+            <JsonVisualizer 
+              data={event.value} 
+              excludeKeys={[]} 
+              initialExpanded={false} 
+            />
+          </>
+        ) : (
+          <CSyntaxHighlighter language="json">
+            {formatValue(event.value)}
+          </CSyntaxHighlighter>
+        )}
       </TrajectoryCard.Body>
     </TrajectoryCard>
   );
