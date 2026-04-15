@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { JsonlEntry, parseJsonlFile } from '../../utils/jsonl-parser';
 import JsonlViewerSettings, { JsonlViewerSettings as JsonlViewerSettingsType } from './JsonlViewerSettings';
 import { getNestedValue, formatValueForDisplay } from '../../utils/object-utils';
@@ -66,6 +67,48 @@ const JsonlViewer: React.FC<JsonlViewerProps> = ({ content }) => {
   const [trajectoryItems, setTrajectoryItems] = useState<TrajectoryHistoryEntry[]>([]);
   const [settings, setSettings] = useState<JsonlViewerSettingsType>(DEFAULT_JSONL_VIEWER_SETTINGS);
   const [originalEntries, setOriginalEntries] = useState<JsonlEntry[]>([]);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const trajectoryRef = useRef<HTMLDivElement>(null);
+  const isInitialLoad = useRef(true);
+
+  // Handle instance_id from URL parameters
+  useEffect(() => {
+    const instanceIdParam = searchParams.get('instance_id');
+    if (instanceIdParam && entries.length > 0 && isInitialLoad.current) {
+      // Find the entry with matching instance_id
+      const index = entries.findIndex(entry => entry.instance_id === instanceIdParam);
+      if (index !== -1) {
+        console.log('Found matching instance_id:', instanceIdParam, 'at index:', index);
+        handleSelectEntry(index);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [entries]);
+
+  // Handle trajectory_step from URL parameters (after entries are loaded)
+  useEffect(() => {
+    const trajectoryStepParam = searchParams.get('trajectory_step');
+    if (trajectoryStepParam && trajectoryItems.length > 0 && isInitialLoad.current) {
+      // Scroll to the trajectory step after a short delay to ensure rendering
+      setTimeout(() => {
+        const stepElement = document.getElementById(`trajectory-step-${trajectoryStepParam}`);
+        if (stepElement) {
+          stepElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          // Add a highlight effect
+          stepElement.classList.add('ring-2', 'ring-blue-500');
+          setTimeout(() => {
+            stepElement.classList.remove('ring-2', 'ring-blue-500');
+          }, 3000);
+        }
+      }, 500);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [trajectoryItems]);
+
+  // Mark initial load as complete after first render
+  useEffect(() => {
+    isInitialLoad.current = false;
+  }, []);
 
   // Parse the JSONL file on component mount or when content changes
   useEffect(() => {
@@ -159,6 +202,16 @@ const JsonlViewer: React.FC<JsonlViewerProps> = ({ content }) => {
       } else {
         setTrajectoryItems([]);
       }
+    }
+    
+    // Update URL with instance_id parameter
+    const selectedEntry = entries[index];
+    if (selectedEntry?.instance_id) {
+      const newParams = new URLSearchParams(searchParams);
+      newParams.set('instance_id', selectedEntry.instance_id);
+      // Remove trajectory_step when changing instances (new instance = new trajectory)
+      newParams.delete('trajectory_step');
+      setSearchParams(newParams, { replace: true });
     }
   };
 
@@ -339,61 +392,92 @@ const JsonlViewer: React.FC<JsonlViewerProps> = ({ content }) => {
             </div>
             
             {/* Timeline Content - scrollable */}
-            <div className="flex-1 min-h-0 overflow-y-auto scrollbar scrollbar-w-1.5 scrollbar-thumb-gray-200/75 dark:scrollbar-thumb-gray-700/75 scrollbar-track-transparent hover:scrollbar-thumb-gray-300/75 dark:hover:scrollbar-thumb-gray-600/75 scrollbar-thumb-rounded p-4">
+            <div ref={trajectoryRef} className="flex-1 min-h-0 overflow-y-auto scrollbar scrollbar-w-1.5 scrollbar-thumb-gray-200/75 dark:scrollbar-thumb-gray-700/75 scrollbar-track-transparent hover:scrollbar-thumb-gray-300/75 dark:hover:scrollbar-thumb-gray-600/75 scrollbar-thumb-rounded p-4">
               {filteredTrajectoryItems.length > 0 ? (
                 <div className="flex flex-col items-center gap-4">
                   {filteredTrajectoryItems.map((item, index) => {
                     const trajectoryItem = item as unknown as TrajectoryItem;
                     
+                    // Helper function to copy link for trajectory step
+                    const copyLink = () => {
+                      const instanceId = entries[currentEntryIndex]?.instance_id;
+                      const stepId = index.toString();
+                      const baseUrl = window.location.href.split('?')[0];
+                      const url = `${baseUrl}?instance_id=${encodeURIComponent(instanceId || '')}&trajectory_step=${stepId}`;
+                      navigator.clipboard.writeText(url).then(() => {
+                        // Show a temporary success indicator
+                        alert('Link copied to clipboard!');
+                      }).catch(err => {
+                        console.error('Failed to copy link:', err);
+                      });
+                    };
+
+                    // Wrap trajectory items with ID and copy link button
+                    const wrapWithWrapper = (element: React.ReactNode) => (
+                      <div id={`trajectory-step-${index}`} className="relative group w-full max-w-[1000px]">
+                        {element}
+                        {/* Copy link button */}
+                        <button
+                          onClick={copyLink}
+                          className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded text-gray-600 dark:text-gray-300"
+                          title="Copy link to this step"
+                        >
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+                          </svg>
+                        </button>
+                      </div>
+                    );
+                    
                     // Check OpenHands history format first
                     if (isAgentContextEvent(item)) {
                       // Show agent context with skills as a dedicated component
-                      return <AgentContextComponent key={index} data={item} timestamp={item.timestamp} />;
+                      return wrapWithWrapper(<AgentContextComponent key={index} data={item} timestamp={item.timestamp} />);
                     } else if (isEnvironmentEvent(item)) {
-                      return <EnvironmentEventComponent key={index} event={item} />;
+                      return wrapWithWrapper(<EnvironmentEventComponent key={index} event={item} />);
                     } else if (isSystemPrompt(item)) {
-                      return <SystemPromptComponent key={index} data={item} />;
+                      return wrapWithWrapper(<SystemPromptComponent key={index} data={item} />);
                     } else if (isUserLLMMessage(item)) {
-                      return <UserLLMMessageComponent key={index} message={item} />;
+                      return wrapWithWrapper(<UserLLMMessageComponent key={index} message={item} />);
                     } else if (isAgentThought(item)) {
-                      return <AgentThoughtComponent key={index} thought={item} />;
+                      return wrapWithWrapper(<AgentThoughtComponent key={index} thought={item} />);
                     } else if (isAgentAction(item)) {
-                      return <AgentActionComponent key={index} action={item} />;
+                      return wrapWithWrapper(<AgentActionComponent key={index} action={item} />);
                     }
                     
                     // Then check standard format
                     if (isAgentStateChange(trajectoryItem)) {
-                      return <AgentStateChangeComponent key={index} state={trajectoryItem as any} />;
+                      return wrapWithWrapper(<AgentStateChangeComponent key={index} state={trajectoryItem as any} />);
                     } else if (isUserMessage(trajectoryItem)) {
-                      return <UserMessageComponent key={index} message={trajectoryItem as any} />;
+                      return wrapWithWrapper(<UserMessageComponent key={index} message={trajectoryItem as any} />);
                     } else if (isAssistantMessage(trajectoryItem)) {
-                      return <AssistantMessageComponent key={index} message={trajectoryItem as any} />;
+                      return wrapWithWrapper(<AssistantMessageComponent key={index} message={trajectoryItem as any} />);
                     } else if (isCommandAction(trajectoryItem)) {
-                      return <CommandActionComponent key={index} command={trajectoryItem as any} />;
+                      return wrapWithWrapper(<CommandActionComponent key={index} command={trajectoryItem as any} />);
                     } else if (isCommandObservation(trajectoryItem)) {
-                      return <CommandObservationComponent key={index} observation={trajectoryItem as any} />;
+                      return wrapWithWrapper(<CommandObservationComponent key={index} observation={trajectoryItem as any} />);
                     } else if (isIPythonAction(trajectoryItem)) {
-                      return <IPythonActionComponent key={index} action={trajectoryItem as any} />;
+                      return wrapWithWrapper(<IPythonActionComponent key={index} action={trajectoryItem as any} />);
                     } else if (isIPythonObservation(trajectoryItem)) {
-                      return <IPythonObservationComponent key={index} observation={trajectoryItem as any} />;
+                      return wrapWithWrapper(<IPythonObservationComponent key={index} observation={trajectoryItem as any} />);
                     } else if (isFinishAction(trajectoryItem)) {
-                      return <FinishActionComponent key={index} action={trajectoryItem as any} />;
+                      return wrapWithWrapper(<FinishActionComponent key={index} action={trajectoryItem as any} />);
                     } else if (isErrorObservation(trajectoryItem)) {
-                      return <ErrorObservationComponent key={index} observation={trajectoryItem as any} />;
+                      return wrapWithWrapper(<ErrorObservationComponent key={index} observation={trajectoryItem as any} />);
                     } else if (isReadAction(trajectoryItem)) {
-                      return <ReadActionComponent key={index} item={trajectoryItem as any} />;
+                      return wrapWithWrapper(<ReadActionComponent key={index} item={trajectoryItem as any} />);
                     } else if (isReadObservation(trajectoryItem)) {
-                      return <ReadObservationComponent key={index} observation={trajectoryItem as any} />;
+                      return wrapWithWrapper(<ReadObservationComponent key={index} observation={trajectoryItem as any} />);
                     } else if (isEditAction(trajectoryItem)) {
-                      return <EditActionComponent key={index} item={trajectoryItem as any} />;
+                      return wrapWithWrapper(<EditActionComponent key={index} item={trajectoryItem as any} />);
                     } else if (isEditObservation(trajectoryItem)) {
-                      return <EditObservationComponent key={index} observation={trajectoryItem as any} />;
+                      return wrapWithWrapper(<EditObservationComponent key={index} observation={trajectoryItem as any} />);
                     } else if (isThinkAction(trajectoryItem)) {
-                      return <ThinkActionComponent key={index} action={trajectoryItem as any} />;
+                      return wrapWithWrapper(<ThinkActionComponent key={index} action={trajectoryItem as any} />);
                     } else if (isThinkObservation(trajectoryItem)) {
-                      return <ThinkObservationComponent key={index} observation={trajectoryItem as any} />;
+                      return wrapWithWrapper(<ThinkObservationComponent key={index} observation={trajectoryItem as any} />);
                     } else {
-                      return (
+                      return wrapWithWrapper(
                         <TrajectoryCard key={index}>
                           <CSyntaxHighlighter
                             language="json"
