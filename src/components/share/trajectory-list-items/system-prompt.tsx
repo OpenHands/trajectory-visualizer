@@ -4,10 +4,11 @@ import { TrajectoryCard } from "../trajectory-card";
 import { CMarkdown } from '../../markdown';
 
 interface SystemPromptProps {
+  extra?: React.ReactNode;
   data: any;
 }
 
-export const SystemPromptComponent: React.FC<SystemPromptProps> = ({ data }) => {
+export const SystemPromptComponent: React.FC<SystemPromptProps> = ({ data, extra }) => {
   const prompt = data.system_prompt?.text || data.system_prompt || '';
 
   return (
@@ -16,7 +17,7 @@ export const SystemPromptComponent: React.FC<SystemPromptProps> = ({ data }) => 
       originalJson={data}
       timestamp={data.timestamp}
     >
-      <TrajectoryCard.Header className="bg-slate-100 dark:bg-slate-800/50 text-slate-800 dark:text-slate-100">
+      <TrajectoryCard.Header extra={extra} className="bg-slate-100 dark:bg-slate-800/50 text-slate-800 dark:text-slate-100">
         ⚙️ System Prompt
       </TrajectoryCard.Header>
       <TrajectoryCard.Body>

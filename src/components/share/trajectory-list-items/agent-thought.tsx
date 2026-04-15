@@ -4,10 +4,11 @@ import { TrajectoryCard } from "../trajectory-card";
 import { CMarkdown } from '../../markdown';
 
 interface AgentThoughtProps {
+  extra?: React.ReactNode;
   thought: any;
 }
 
-export const AgentThoughtComponent: React.FC<AgentThoughtProps> = ({ thought }) => {
+export const AgentThoughtComponent: React.FC<AgentThoughtProps> = ({ thought, extra }) => {
   const reasoning = thought.reasoning_content || '';
   const thoughts = thought.thought;
   const action = thought.action;
@@ -18,7 +19,7 @@ export const AgentThoughtComponent: React.FC<AgentThoughtProps> = ({ thought }) 
       originalJson={thought}
       timestamp={thought.timestamp}
     >
-      <TrajectoryCard.Header className="bg-cyan-100 dark:bg-cyan-800/50 text-cyan-800 dark:text-cyan-100">
+      <TrajectoryCard.Header extra={extra} className="bg-cyan-100 dark:bg-cyan-800/50 text-cyan-800 dark:text-cyan-100">
         💭 Agent Thought
       </TrajectoryCard.Header>
       <TrajectoryCard.Body>

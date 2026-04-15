@@ -3,10 +3,11 @@ import { TrajectoryCard } from "../trajectory-card";
 import { CMarkdown } from '../../markdown';
 
 interface UserLLMMessageProps {
+  extra?: React.ReactNode;
   message: any;
 }
 
-export const UserLLMMessageComponent: React.FC<UserLLMMessageProps> = ({ message }) => {
+export const UserLLMMessageComponent: React.FC<UserLLMMessageProps> = ({ message, extra }) => {
   const content = message.llm_message?.content;
   
   const extractText = (content: any): string => {
@@ -27,7 +28,7 @@ export const UserLLMMessageComponent: React.FC<UserLLMMessageProps> = ({ message
       originalJson={message}
       timestamp={message.timestamp}
     >
-      <TrajectoryCard.Header className="bg-blue-100 dark:bg-blue-800/50 text-blue-800 dark:text-blue-100">
+      <TrajectoryCard.Header extra={extra} className="bg-blue-100 dark:bg-blue-800/50 text-blue-800 dark:text-blue-100">
         👤 User Message (LLM)
       </TrajectoryCard.Header>
       <TrajectoryCard.Body>

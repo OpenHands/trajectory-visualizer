@@ -429,90 +429,94 @@ const JsonlViewer: React.FC<JsonlViewerProps> = ({
                   {filteredTrajectoryItems.map((item, index) => {
                     const trajectoryItem = item as unknown as TrajectoryItem;
                     
-                    // Render component with copy link button
-                    const renderWithCopyLink = (component: React.ReactNode) => (
-                      <div key={index} className="relative w-full max-w-[1000px]" id={`trajectory-step-${index}`}>
-                        {component}
-                        <div className="absolute top-2 right-2">
-                          <button
-                            onClick={() => setMenuOpenIndex(menuOpenIndex === index ? null : index)}
-                            className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400"
-                            aria-label="More options"
+                    // Create copy link button component
+                    const copyLinkButton = (
+                      <div className="relative">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setMenuOpenIndex(menuOpenIndex === index ? null : index);
+                          }}
+                          className="p-1 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+                          aria-label="More options"
+                        >
+                          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                          </svg>
+                        </button>
+                        {menuOpenIndex === index && (
+                          <div 
+                            className="absolute right-0 top-full mt-1 w-32 bg-white dark:bg-gray-800 rounded-md shadow-lg border border-gray-200 dark:border-gray-700 z-10"
+                            onClick={(e) => e.stopPropagation()}
                           >
-                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
-                            </svg>
-                          </button>
-                          {menuOpenIndex === index && (
-                            <div className="absolute right-0 mt-1 w-40 bg-white dark:bg-gray-800 rounded-md shadow-lg border border-gray-200 dark:border-gray-700 z-10">
-                              <button
-                                onClick={() => handleCopyStepLink(index)}
-                                className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                              >
-                                Copy link
-                              </button>
-                            </div>
-                          )}
-                        </div>
+                            <button
+                              onClick={() => handleCopyStepLink(index)}
+                              className="block w-full text-left px-3 py-1.5 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                            >
+                              Copy link
+                            </button>
+                          </div>
+                        )}
                       </div>
                     );
                     
                     // Check OpenHands history format first
                     if (isAgentContextEvent(item)) {
-                      // Show agent context with skills as a dedicated component
-                      return renderWithCopyLink(<AgentContextComponent key={index} data={item} timestamp={item.timestamp} />);
+                      return <AgentContextComponent key={index} data={item} timestamp={item.timestamp} extra={copyLinkButton} />;
                     } else if (isEnvironmentEvent(item)) {
-                      return renderWithCopyLink(<EnvironmentEventComponent key={index} event={item} />);
+                      return <EnvironmentEventComponent key={index} event={item} extra={copyLinkButton} />;
                     } else if (isSystemPrompt(item)) {
-                      return renderWithCopyLink(<SystemPromptComponent key={index} data={item} />);
+                      return <SystemPromptComponent key={index} data={item} extra={copyLinkButton} />;
                     } else if (isUserLLMMessage(item)) {
-                      return renderWithCopyLink(<UserLLMMessageComponent key={index} message={item} />);
+                      return <UserLLMMessageComponent key={index} message={item} extra={copyLinkButton} />;
                     } else if (isAgentThought(item)) {
-                      return renderWithCopyLink(<AgentThoughtComponent key={index} thought={item} />);
+                      return <AgentThoughtComponent key={index} thought={item} extra={copyLinkButton} />;
                     } else if (isAgentAction(item)) {
-                      return renderWithCopyLink(<AgentActionComponent key={index} action={item} />);
+                      return <AgentActionComponent key={index} action={item} extra={copyLinkButton} />;
                     }
                     
                     // Then check standard format
                     if (isAgentStateChange(trajectoryItem)) {
-                      return renderWithCopyLink(<AgentStateChangeComponent key={index} state={trajectoryItem as any} />);
+                      return <AgentStateChangeComponent key={index} state={trajectoryItem as any} extra={copyLinkButton} />;
                     } else if (isUserMessage(trajectoryItem)) {
-                      return renderWithCopyLink(<UserMessageComponent key={index} message={trajectoryItem as any} />);
+                      return <UserMessageComponent key={index} message={trajectoryItem as any} extra={copyLinkButton} />;
                     } else if (isAssistantMessage(trajectoryItem)) {
-                      return renderWithCopyLink(<AssistantMessageComponent key={index} message={trajectoryItem as any} />);
+                      return <AssistantMessageComponent key={index} message={trajectoryItem as any} extra={copyLinkButton} />;
                     } else if (isCommandAction(trajectoryItem)) {
-                      return renderWithCopyLink(<CommandActionComponent key={index} command={trajectoryItem as any} />);
+                      return <CommandActionComponent key={index} command={trajectoryItem as any} extra={copyLinkButton} />;
                     } else if (isCommandObservation(trajectoryItem)) {
-                      return renderWithCopyLink(<CommandObservationComponent key={index} observation={trajectoryItem as any} />);
+                      return <CommandObservationComponent key={index} observation={trajectoryItem as any} extra={copyLinkButton} />;
                     } else if (isIPythonAction(trajectoryItem)) {
-                      return renderWithCopyLink(<IPythonActionComponent key={index} action={trajectoryItem as any} />);
+                      return <IPythonActionComponent key={index} action={trajectoryItem as any} extra={copyLinkButton} />;
                     } else if (isIPythonObservation(trajectoryItem)) {
-                      return renderWithCopyLink(<IPythonObservationComponent key={index} observation={trajectoryItem as any} />);
+                      return <IPythonObservationComponent key={index} observation={trajectoryItem as any} extra={copyLinkButton} />;
                     } else if (isFinishAction(trajectoryItem)) {
-                      return renderWithCopyLink(<FinishActionComponent key={index} action={trajectoryItem as any} />);
+                      return <FinishActionComponent key={index} action={trajectoryItem as any} extra={copyLinkButton} />;
                     } else if (isErrorObservation(trajectoryItem)) {
-                      return renderWithCopyLink(<ErrorObservationComponent key={index} observation={trajectoryItem as any} />);
+                      return <ErrorObservationComponent key={index} observation={trajectoryItem as any} extra={copyLinkButton} />;
                     } else if (isReadAction(trajectoryItem)) {
-                      return renderWithCopyLink(<ReadActionComponent key={index} item={trajectoryItem as any} />);
+                      return <ReadActionComponent key={index} item={trajectoryItem as any} extra={copyLinkButton} />;
                     } else if (isReadObservation(trajectoryItem)) {
-                      return renderWithCopyLink(<ReadObservationComponent key={index} observation={trajectoryItem as any} />);
+                      return <ReadObservationComponent key={index} observation={trajectoryItem as any} extra={copyLinkButton} />;
                     } else if (isEditAction(trajectoryItem)) {
-                      return renderWithCopyLink(<EditActionComponent key={index} item={trajectoryItem as any} />);
+                      return <EditActionComponent key={index} item={trajectoryItem as any} extra={copyLinkButton} />;
                     } else if (isEditObservation(trajectoryItem)) {
-                      return renderWithCopyLink(<EditObservationComponent key={index} observation={trajectoryItem as any} />);
+                      return <EditObservationComponent key={index} observation={trajectoryItem as any} extra={copyLinkButton} />;
                     } else if (isThinkAction(trajectoryItem)) {
-                      return renderWithCopyLink(<ThinkActionComponent key={index} action={trajectoryItem as any} />);
+                      return <ThinkActionComponent key={index} action={trajectoryItem as any} extra={copyLinkButton} />;
                     } else if (isThinkObservation(trajectoryItem)) {
-                      return renderWithCopyLink(<ThinkObservationComponent key={index} observation={trajectoryItem as any} />);
+                      return <ThinkObservationComponent key={index} observation={trajectoryItem as any} extra={copyLinkButton} />;
                     } else {
-                      return renderWithCopyLink(
-                        <TrajectoryCard key={index}>
-                          <CSyntaxHighlighter
-                            language="json"
-                            key={index}
-                          >
-                            {JSON.stringify(item, null, 2)}
-                          </CSyntaxHighlighter>
+                      return (
+                        <TrajectoryCard key={index} id={`trajectory-step-${index}`}>
+                          <TrajectoryCard.Header extra={copyLinkButton}>
+                            Item #{index + 1}
+                          </TrajectoryCard.Header>
+                          <TrajectoryCard.Body>
+                            <CSyntaxHighlighter language="json">
+                              {JSON.stringify(item, null, 2)}
+                            </CSyntaxHighlighter>
+                          </TrajectoryCard.Body>
                         </TrajectoryCard>
                       );
                     }

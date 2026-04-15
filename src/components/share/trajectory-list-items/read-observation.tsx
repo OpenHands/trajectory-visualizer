@@ -4,10 +4,11 @@ import { TrajectoryCard } from "../trajectory-card";
 import { ReadObservation } from '../../../types/share';
 
 interface ReadObservationProps {
+  extra?: React.ReactNode;
   observation: ReadObservation;
 }
 
-export const ReadObservationComponent: React.FC<ReadObservationProps> = ({ observation }) => {
+export const ReadObservationComponent: React.FC<ReadObservationProps> = ({ observation, extra }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   
   // Determine language based on file extension
@@ -59,7 +60,7 @@ export const ReadObservationComponent: React.FC<ReadObservationProps> = ({ obser
       defaultCollapsed={false}
       timestamp={observation.timestamp}
     >
-      <TrajectoryCard.Header className="bg-gray-100 dark:bg-gray-700/50 text-gray-700 dark:text-gray-200">
+      <TrajectoryCard.Header extra={extra} className="bg-gray-100 dark:bg-gray-700/50 text-gray-700 dark:text-gray-200">
         File Read Observation: {observation.extras.path}
       </TrajectoryCard.Header>
       <TrajectoryCard.Body>

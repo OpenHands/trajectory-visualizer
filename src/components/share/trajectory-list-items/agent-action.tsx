@@ -5,9 +5,10 @@ import { CMarkdown } from '../../markdown';
 
 interface AgentActionProps {
   action: any;
+  extra?: React.ReactNode;
 }
 
-export const AgentActionComponent: React.FC<AgentActionProps> = ({ action }) => {
+export const AgentActionComponent: React.FC<AgentActionProps> = ({ action, extra }) => {
   const toolName = action.tool_name || action.action?.command || 'unknown';
   
   const getToolArgs = () => {
@@ -28,7 +29,7 @@ export const AgentActionComponent: React.FC<AgentActionProps> = ({ action }) => 
       originalJson={action}
       timestamp={action.timestamp}
     >
-      <TrajectoryCard.Header className="bg-amber-100 dark:bg-amber-800/50 text-amber-800 dark:text-amber-100">
+      <TrajectoryCard.Header extra={extra} className="bg-amber-100 dark:bg-amber-800/50 text-amber-800 dark:text-amber-100">
         🤖 Agent Action: {toolName}
       </TrajectoryCard.Header>
       <TrajectoryCard.Body>

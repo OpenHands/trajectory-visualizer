@@ -5,16 +5,17 @@ import { CMarkdown } from '../../markdown';
 
 interface EditActionProps {
   item: EditAction;
+  extra?: React.ReactNode;
 }
 
-export const EditActionComponent: React.FC<EditActionProps> = ({ item }) => {
+export const EditActionComponent: React.FC<EditActionProps> = ({ item, extra }) => {
   return (
     <TrajectoryCard 
       className="bg-orange-50 dark:bg-orange-900/10 border border-orange-200 dark:border-orange-800"
       originalJson={item}
       timestamp={item.timestamp}
     >
-      <TrajectoryCard.Header className="bg-orange-100 dark:bg-orange-800/50 text-orange-800 dark:text-orange-100">
+      <TrajectoryCard.Header className="bg-orange-100 dark:bg-orange-800/50 text-orange-800 dark:text-orange-100" extra={extra}>
         <div className="flex justify-between items-center w-full">
           <span>File Edit Action: {item.args.path}</span>
         </div>

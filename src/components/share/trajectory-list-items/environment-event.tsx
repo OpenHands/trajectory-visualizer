@@ -4,9 +4,10 @@ import { TrajectoryCard } from "../trajectory-card";
 
 interface EnvironmentEventProps {
   event: any;
+  extra?: React.ReactNode;
 }
 
-export const EnvironmentEventComponent: React.FC<EnvironmentEventProps> = ({ event }) => {
+export const EnvironmentEventComponent: React.FC<EnvironmentEventProps> = ({ event, extra }) => {
   const formatValue = (value: any): string => {
     if (typeof value === 'object') {
       // For full_state events, show a summary (detailed view is in AgentContextComponent)
@@ -31,7 +32,7 @@ export const EnvironmentEventComponent: React.FC<EnvironmentEventProps> = ({ eve
       originalJson={event}
       timestamp={event.timestamp}
     >
-      <TrajectoryCard.Header className="bg-purple-100 dark:bg-purple-800/50 text-purple-800 dark:text-purple-100">
+      <TrajectoryCard.Header className="bg-purple-100 dark:bg-purple-800/50 text-purple-800 dark:text-purple-100" extra={extra}>
         🌍 {getTitle()}
       </TrajectoryCard.Header>
       <TrajectoryCard.Body>

@@ -5,6 +5,7 @@ import { CMarkdown } from '../../markdown';
 interface AgentContextProps {
   data: any;
   timestamp?: string;
+  extra?: React.ReactNode;
 }
 
 interface Skill {
@@ -15,7 +16,7 @@ interface Skill {
   trigger?: any;
 }
 
-export const AgentContextComponent: React.FC<AgentContextProps> = ({ data, timestamp }) => {
+export const AgentContextComponent: React.FC<AgentContextProps> = ({ data, timestamp, extra }) => {
   const [expandedSkills, setExpandedSkills] = useState<Record<string, boolean>>({});
   const [searchQuery, setSearchQuery] = useState('');
   
@@ -62,7 +63,7 @@ export const AgentContextComponent: React.FC<AgentContextProps> = ({ data, times
       originalJson={data}
       timestamp={timestamp}
     >
-      <TrajectoryCard.Header className="bg-indigo-100 dark:bg-indigo-800/50 text-indigo-800 dark:text-indigo-100">
+      <TrajectoryCard.Header className="bg-indigo-100 dark:bg-indigo-800/50 text-indigo-800 dark:text-indigo-100" extra={extra}>
         🧠 Agent Context
       </TrajectoryCard.Header>
       <TrajectoryCard.Body>

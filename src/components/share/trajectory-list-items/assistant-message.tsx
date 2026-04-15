@@ -4,10 +4,11 @@ import { AssistantMessage } from '../../../types/share';
 import { CMarkdown } from '../../markdown';
 
 interface AssistantMessageProps {
+  extra?: React.ReactNode;
   message: AssistantMessage;
 }
 
-export const AssistantMessageComponent: React.FC<AssistantMessageProps> = ({ message }) => {
+export const AssistantMessageComponent: React.FC<AssistantMessageProps> = ({ message, extra }) => {
   const content = message.content || message.args?.content || '';
   
   return (
@@ -16,7 +17,7 @@ export const AssistantMessageComponent: React.FC<AssistantMessageProps> = ({ mes
       originalJson={message}
       timestamp={message.timestamp}
     >
-      <TrajectoryCard.Header className="bg-purple-100 dark:bg-purple-800/50 text-purple-800 dark:text-purple-100">Assistant Message</TrajectoryCard.Header>
+      <TrajectoryCard.Header extra={extra} className="bg-purple-100 dark:bg-purple-800/50 text-purple-800 dark:text-purple-100">Assistant Message</TrajectoryCard.Header>
       <TrajectoryCard.Body>
         <CMarkdown>{content}</CMarkdown>
       </TrajectoryCard.Body>

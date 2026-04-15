@@ -4,10 +4,11 @@ import { TrajectoryCard } from "../trajectory-card";
 import { IPythonObservation } from '../../../types/share';
 
 interface IPythonObservationProps {
+  extra?: React.ReactNode;
   observation: IPythonObservation;
 }
 
-export const IPythonObservationComponent: React.FC<IPythonObservationProps> = ({ observation }) => {
+export const IPythonObservationComponent: React.FC<IPythonObservationProps> = ({ observation, extra }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   
   // Get the first 5 lines of content
@@ -29,7 +30,7 @@ export const IPythonObservationComponent: React.FC<IPythonObservationProps> = ({
       originalJson={observation}
       timestamp={observation.timestamp}
     >
-      <TrajectoryCard.Header className="bg-gray-100 dark:bg-gray-700/50 text-gray-700 dark:text-gray-200">IPython Output</TrajectoryCard.Header>
+      <TrajectoryCard.Header extra={extra} className="bg-gray-100 dark:bg-gray-700/50 text-gray-700 dark:text-gray-200">IPython Output</TrajectoryCard.Header>
       <TrajectoryCard.Body>
         <CSyntaxHighlighter language="python">{displayContent}</CSyntaxHighlighter>
         

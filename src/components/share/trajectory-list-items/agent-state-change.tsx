@@ -4,10 +4,11 @@ import { AgentStateChange } from '../../../types/share';
 import { CMarkdown } from '../../markdown';
 
 interface AgentStateChangeProps {
+  extra?: React.ReactNode;
   state: AgentStateChange;
 }
 
-export const AgentStateChangeComponent: React.FC<AgentStateChangeProps> = ({ state }) => {
+export const AgentStateChangeComponent: React.FC<AgentStateChangeProps> = ({ state, extra }) => {
   let stateText = '';
   let thought = '';
   
@@ -24,7 +25,7 @@ export const AgentStateChangeComponent: React.FC<AgentStateChangeProps> = ({ sta
       originalJson={state}
       timestamp={state.timestamp}
     >
-      <TrajectoryCard.Header className="bg-gray-100 dark:bg-gray-700/50 text-gray-700 dark:text-gray-200">Agent State: {stateText}</TrajectoryCard.Header>
+      <TrajectoryCard.Header extra={extra} className="bg-gray-100 dark:bg-gray-700/50 text-gray-700 dark:text-gray-200">Agent State: {stateText}</TrajectoryCard.Header>
       <TrajectoryCard.Body>
         {thought && <CMarkdown>{thought}</CMarkdown>}
       </TrajectoryCard.Body>

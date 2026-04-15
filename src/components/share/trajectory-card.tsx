@@ -8,6 +8,8 @@ interface TrajectoryTempateProps {
   originalJson?: any;
   defaultCollapsed?: boolean;
   timestamp?: string;
+  id?: string;
+  extra?: React.ReactNode;
 }
 
 interface TrajectoryCardType extends React.FC<TrajectoryTempateProps> {
@@ -15,7 +17,7 @@ interface TrajectoryCardType extends React.FC<TrajectoryTempateProps> {
   Body: React.FC<TrajectoryCardBodyProps>;
 }
 
-export const TrajectoryCard: TrajectoryCardType = ({ children, className, originalJson, defaultCollapsed = false, timestamp }) => {
+export const TrajectoryCard: TrajectoryCardType = ({ children, className, originalJson, defaultCollapsed = false, timestamp, id, extra }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
   
@@ -35,6 +37,7 @@ export const TrajectoryCard: TrajectoryCardType = ({ children, className, origin
 
   return (
     <section
+      id={id}
       className={clsx(
         "w-full max-w-[1000px] rounded-md shadow-sm text-xs",
         className,
@@ -47,22 +50,11 @@ export const TrajectoryCard: TrajectoryCardType = ({ children, className, origin
           onClick={() => setIsCollapsed(!isCollapsed)}
         >
           <div className="flex-grow">
-            {React.isValidElement(header) && React.cloneElement(header, { timestamp })}
+            {React.isValidElement(header) && React.cloneElement(header, { 
+              timestamp,
+              extra: extra
+            })}
           </div>
-          <button
-            className="px-2 py-1 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
-            aria-label={isCollapsed ? "Expand" : "Collapse"}
-          >
-            {isCollapsed ? (
-              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            ) : (
-              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-              </svg>
-            )}
-          </button>
         </div>
       )}
       
@@ -103,9 +95,11 @@ interface TrajectoryCardHeaderProps {
   children: React.ReactNode;
   className?: React.HTMLAttributes<HTMLDivElement>["className"];
   timestamp?: string;
+  extra?: React.ReactNode;
+  onToggleClick?: React.ReactNode;
 }
 
-const TrajectoryCardHeader: React.FC<TrajectoryCardHeaderProps> = ({ children, className, timestamp }) => {
+const TrajectoryCardHeader: React.FC<TrajectoryCardHeaderProps> = ({ children, className, timestamp, extra, onToggleClick }) => {
   return (
     <div
       className={clsx(
@@ -114,11 +108,15 @@ const TrajectoryCardHeader: React.FC<TrajectoryCardHeaderProps> = ({ children, c
       )}
     >
       <div>{children}</div>
-      {timestamp && (
-        <div className="text-[9px] opacity-80">
-          {new Date(timestamp).toLocaleString()}
-        </div>
-      )}
+      <div className="flex items-center gap-1">
+        {timestamp && (
+          <span className="text-[9px] opacity-80">
+            {new Date(timestamp).toLocaleString()}
+          </span>
+        )}
+        {extra}
+        {onToggleClick}
+      </div>
     </div>
   );
 }

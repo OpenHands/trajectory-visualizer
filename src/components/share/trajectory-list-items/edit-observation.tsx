@@ -5,10 +5,11 @@ import { EditObservation } from '../../../types/share';
 import { DiffViewer } from '../../diff-viewer';
 
 interface EditObservationProps {
+  extra?: React.ReactNode;
   observation: EditObservation;
 }
 
-export const EditObservationComponent: React.FC<EditObservationProps> = ({ observation }) => {
+export const EditObservationComponent: React.FC<EditObservationProps> = ({ observation, extra }) => {
   // Check if changes are empty
   const hasChanges = observation.extras.old_content && observation.extras.new_content && 
                     observation.extras.old_content !== observation.extras.new_content;
@@ -65,7 +66,7 @@ export const EditObservationComponent: React.FC<EditObservationProps> = ({ obser
       originalJson={observation}
       timestamp={observation.timestamp}
     >
-      <TrajectoryCard.Header className="bg-gray-100 dark:bg-gray-700/50 text-gray-700 dark:text-gray-200">
+      <TrajectoryCard.Header extra={extra} className="bg-gray-100 dark:bg-gray-700/50 text-gray-700 dark:text-gray-200">
         <div className="flex justify-between items-center w-full">
           <span>File Edit Observation: {observation.extras.path}</span>
           <div className="flex items-center space-x-2">

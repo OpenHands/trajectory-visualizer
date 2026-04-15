@@ -4,10 +4,11 @@ import { TrajectoryCard } from "../trajectory-card";
 import { CommandObservation } from '../../../types/share';
 
 interface CommandObservationProps {
+  extra?: React.ReactNode;
   observation: CommandObservation;
 }
 
-export const CommandObservationComponent: React.FC<CommandObservationProps> = ({ observation }) => {
+export const CommandObservationComponent: React.FC<CommandObservationProps> = ({ observation, extra }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   
   // Get the first 5 lines of content
@@ -29,7 +30,7 @@ export const CommandObservationComponent: React.FC<CommandObservationProps> = ({
       originalJson={observation}
       timestamp={observation.timestamp}
     >
-      <TrajectoryCard.Header className="bg-gray-100 dark:bg-gray-700/50 text-gray-700 dark:text-gray-200">Shell Output</TrajectoryCard.Header>
+      <TrajectoryCard.Header extra={extra} className="bg-gray-100 dark:bg-gray-700/50 text-gray-700 dark:text-gray-200">Shell Output</TrajectoryCard.Header>
       <TrajectoryCard.Body>
         <CSyntaxHighlighter language="shell">{displayContent}</CSyntaxHighlighter>
         
