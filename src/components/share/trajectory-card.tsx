@@ -116,7 +116,6 @@ interface TrajectoryCardHeaderProps {
 }
 
 const TrajectoryCardHeader: React.FC<TrajectoryCardHeaderProps> = ({ children, className, timestamp, extra, onToggleClick }) => {
-  console.log('TrajectoryCardHeader rendering:', { timestamp, extra: !!extra, onToggleClick: !!onToggleClick });
   return (
     <div
       className={clsx(
@@ -125,7 +124,7 @@ const TrajectoryCardHeader: React.FC<TrajectoryCardHeaderProps> = ({ children, c
       )}
     >
       <div>{children}</div>
-      <div className="flex items-center gap-1">
+      <div className="flex items-center">
         {timestamp && (
           <span className="text-[9px] opacity-80">
             {new Date(timestamp).toLocaleString()}

@@ -459,7 +459,6 @@ const JsonlViewer: React.FC<JsonlViewerProps> = ({
                         )}
                       </div>
                     );
-                    console.log('Rendering component with extra:', index, !!copyLinkButton);
                     
                     // Check OpenHands history format first
                     if (isAgentContextEvent(item)) {
