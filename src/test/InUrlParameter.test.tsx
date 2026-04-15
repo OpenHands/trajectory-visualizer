@@ -123,11 +123,12 @@ describe('inUrl Parameter', () => {
     // Mock fetch to return the tar.gz
     const fetchMock = vi.fn().mockResolvedValueOnce({
       ok: true,
+      headers: new Map([['content-length', '1000']]),
       arrayBuffer: () => Promise.resolve(tarGzData.buffer)
     });
     global.fetch = fetchMock as typeof fetch;
 
-    // Render with inUrl parameter
+    // Render with inUrl parameter - must use allowed domain and suffix
     const testUrl = 'https://results.eval.all-hands.dev/test/results.tar.gz';
     render(
       <MemoryRouter initialEntries={[`/?inUrl=${encodeURIComponent(testUrl)}`]}>
@@ -135,7 +136,7 @@ describe('inUrl Parameter', () => {
       </MemoryRouter>
     );
 
-    // Wait for fetch to be called
+    // Wait for fetch to be called with correct URL and options
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalledWith(
         testUrl,
@@ -148,12 +149,70 @@ describe('inUrl Parameter', () => {
       );
     });
 
-    // Wait for loading to complete and content to be processed
+    // Verify fetch was called exactly once (for the tar.gz)
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('should reject URLs not from allowed domain', async () => {
+    // Mock alert
+    const alertMock = vi.fn();
+    window.alert = alertMock;
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    // Mock fetch (should not be called)
+    const fetchMock = vi.fn();
+    global.fetch = fetchMock as typeof fetch;
+
+    // Render with inUrl parameter from non-allowed domain
+    const testUrl = 'https://evil.example.com/malicious/results.tar.gz';
+    render(
+      <MemoryRouter initialEntries={[`/?inUrl=${encodeURIComponent(testUrl)}`]}>
+        <App router={false} />
+      </MemoryRouter>
+    );
+
+    // Wait for validation error
     await waitFor(() => {
-      // After loading, the URL should no longer have the inUrl parameter
-      // (it gets cleared after loading)
-      expect(fetchMock).toHaveBeenCalledTimes(1);
-    }, { timeout: 5000 });
+      expect(alertMock).toHaveBeenCalledWith(
+        expect.stringContaining('Invalid URL format')
+      );
+    });
+
+    // Fetch should NOT be called for invalid URLs
+    expect(fetchMock).not.toHaveBeenCalled();
+    
+    consoleErrorSpy.mockRestore();
+  });
+
+  it('should reject URLs without required suffix', async () => {
+    // Mock alert
+    const alertMock = vi.fn();
+    window.alert = alertMock;
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    // Mock fetch (should not be called)
+    const fetchMock = vi.fn();
+    global.fetch = fetchMock as typeof fetch;
+
+    // Render with inUrl parameter without results.tar.gz suffix
+    const testUrl = 'https://results.eval.all-hands.dev/test/other-file.json';
+    render(
+      <MemoryRouter initialEntries={[`/?inUrl=${encodeURIComponent(testUrl)}`]}>
+        <App router={false} />
+      </MemoryRouter>
+    );
+
+    // Wait for validation error
+    await waitFor(() => {
+      expect(alertMock).toHaveBeenCalledWith(
+        expect.stringContaining('Invalid URL format')
+      );
+    });
+
+    // Fetch should NOT be called for invalid URLs
+    expect(fetchMock).not.toHaveBeenCalled();
+    
+    consoleErrorSpy.mockRestore();
   });
 
   it('should handle fetch errors gracefully', async () => {
@@ -166,11 +225,12 @@ describe('inUrl Parameter', () => {
     const fetchMock = vi.fn().mockResolvedValueOnce({
       ok: false,
       status: 404,
-      statusText: 'Not Found'
+      statusText: 'Not Found',
+      headers: new Map()
     });
     global.fetch = fetchMock as typeof fetch;
 
-    // Render with inUrl parameter
+    // Render with inUrl parameter - must use allowed domain and suffix
     const testUrl = 'https://results.eval.all-hands.dev/nonexistent/results.tar.gz';
     render(
       <MemoryRouter initialEntries={[`/?inUrl=${encodeURIComponent(testUrl)}`]}>
