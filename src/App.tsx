@@ -151,9 +151,15 @@ const TokenPrompt: React.FC<{ isDark?: boolean }> = ({ isDark = false }) => {
 const RunDetailsWithRouter: React.FC = () => {
   const { owner, repo, runId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [run, setRun] = useState<WorkflowRun | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // Extract instance_id and trajectory_step from URL
+  const searchParams = new URLSearchParams(location.search);
+  const instanceIdParam = searchParams.get('instance_id');
+  const trajectoryStepParam = searchParams.get('trajectory_step');
   
   useEffect(() => {
     // Fetch run details by ID
@@ -247,7 +253,13 @@ const RunDetailsWithRouter: React.FC = () => {
     );
   }
 
-  return <RunDetails owner={owner || ''} repo={repo || ''} run={run} />;
+  return <RunDetails 
+    owner={owner || ''} 
+    repo={repo || ''} 
+    run={run} 
+    instanceId={instanceIdParam || undefined}
+    trajectoryStep={trajectoryStepParam || undefined}
+  />;
 };
 
 // Main App Component
@@ -384,6 +396,16 @@ const App: React.FC<{ router?: boolean }> = ({ router = true }) => {
         const dataParam = searchParams.get('data');
         const fileUrlParam = searchParams.get('fileUrl');
         const inUrlParam = searchParams.get('inUrl');
+        const instanceIdParam = searchParams.get('instance_id');
+        const trajectoryStepParam = searchParams.get('trajectory_step');
+        
+        // Store URL parameters for passing to components
+        if (instanceIdParam) {
+          console.log('Found instance_id parameter:', instanceIdParam);
+        }
+        if (trajectoryStepParam) {
+          console.log('Found trajectory_step parameter:', trajectoryStepParam);
+        }
         
         // Process embedded data parameter
         if (dataParam) {
@@ -739,6 +761,8 @@ const App: React.FC<{ router?: boolean }> = ({ router = true }) => {
                   workflow_name: 'Local Trajectory'
                 }}
                 initialContent={uploadedContent}
+                instanceId={new URLSearchParams(location.search).get('instance_id') || undefined}
+                trajectoryStep={new URLSearchParams(location.search).get('trajectory_step') || undefined}
               />
             </div>
           ) : owner && repo ? (

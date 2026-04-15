@@ -12,9 +12,18 @@ interface RunDetailsProps {
   repo: string;
   run: WorkflowRun;
   initialContent?: any;
+  instanceId?: string;
+  trajectoryStep?: string;
 }
 
-const RunDetails: React.FC<RunDetailsProps> = ({ owner, repo, run, initialContent }) => {
+const RunDetails: React.FC<RunDetailsProps> = ({ 
+  owner, 
+  repo, 
+  run, 
+  initialContent,
+  instanceId,
+  trajectoryStep
+}) => {
   const [runDetails, setRunDetails] = useState<RunDetailsResponse | null>(null);
   const [artifactContent, setArtifactContent] = useState<any | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -103,7 +112,11 @@ const RunDetails: React.FC<RunDetailsProps> = ({ owner, repo, run, initialConten
     console.log('Rendering JSONL viewer with content:', artifactContent.content.jsonlContent.substring(0, 100) + '...');
     return (
       <div className="flex flex-col h-full overflow-hidden">
-        <JsonlViewer content={artifactContent.content.jsonlContent} />
+        <JsonlViewer 
+          content={artifactContent.content.jsonlContent} 
+          instanceId={instanceId}
+          trajectoryStep={trajectoryStep}
+        />
       </div>
     );
   }
@@ -113,7 +126,11 @@ const RunDetails: React.FC<RunDetailsProps> = ({ owner, repo, run, initialConten
     console.log('Rendering full_archive JSONL viewer with content:', artifactContent.content.jsonlContent.substring(0, 100) + '...');
     return (
       <div className="flex flex-col h-full overflow-hidden">
-        <JsonlViewer content={artifactContent.content.jsonlContent} />
+        <JsonlViewer 
+          content={artifactContent.content.jsonlContent} 
+          instanceId={instanceId}
+          trajectoryStep={trajectoryStep}
+        />
       </div>
     );
   }

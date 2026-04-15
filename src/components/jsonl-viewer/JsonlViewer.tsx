@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { JsonlEntry, parseJsonlFile } from '../../utils/jsonl-parser';
 import JsonlViewerSettings, { JsonlViewerSettings as JsonlViewerSettingsType } from './JsonlViewerSettings';
 import { getNestedValue, formatValueForDisplay } from '../../utils/object-utils';
@@ -57,15 +57,59 @@ import { TrajectoryCard } from "../share/trajectory-card";
 
 interface JsonlViewerProps {
   content: string;
+  instanceId?: string;
+  trajectoryStep?: string;
+  onInstanceSelect?: (instanceId: string) => void;
+  onTrajectoryStepSelect?: (stepIndex: number) => void;
 }
 
-const JsonlViewer: React.FC<JsonlViewerProps> = ({ content }) => {
+const JsonlViewer: React.FC<JsonlViewerProps> = ({ 
+  content, 
+  instanceId, 
+  trajectoryStep,
+  onInstanceSelect,
+  onTrajectoryStepSelect
+}) => {
   const [entries, setEntries] = useState<JsonlEntry[]>([]);
   const [currentEntryIndex, setCurrentEntryIndex] = useState<number>(0);
   const [error, setError] = useState<string | null>(null);
   const [trajectoryItems, setTrajectoryItems] = useState<TrajectoryHistoryEntry[]>([]);
   const [settings, setSettings] = useState<JsonlViewerSettingsType>(DEFAULT_JSONL_VIEWER_SETTINGS);
   const [originalEntries, setOriginalEntries] = useState<JsonlEntry[]>([]);
+  const [menuOpenIndex, setMenuOpenIndex] = useState<number | null>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setMenuOpenIndex(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Handle copying link for a trajectory step
+  const handleCopyStepLink = (index: number) => {
+    const currentEntry = entries[currentEntryIndex];
+    const instanceId = currentEntry?.instance_id || '';
+    const baseUrl = window.location.href.split('?')[0];
+    const params = new URLSearchParams();
+    
+    if (instanceId) {
+      params.set('instance_id', instanceId);
+    }
+    params.set('trajectory_step', index.toString());
+    
+    const fullUrl = `${baseUrl}?${params.toString()}`;
+    navigator.clipboard.writeText(fullUrl).then(() => {
+      setMenuOpenIndex(null);
+    }).catch(err => {
+      console.error('Failed to copy link:', err);
+      setMenuOpenIndex(null);
+    });
+  };
 
   // Parse the JSONL file on component mount or when content changes
   useEffect(() => {
@@ -89,6 +133,24 @@ const JsonlViewer: React.FC<JsonlViewerProps> = ({ content }) => {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [content]);
+
+  // Handle instance_id parameter from URL - select the matching entry
+  useEffect(() => {
+    if (instanceId && entries.length > 0) {
+      const matchingIndex = entries.findIndex(entry => 
+        entry.instance_id === instanceId
+      );
+      if (matchingIndex !== -1 && matchingIndex !== currentEntryIndex) {
+        console.log('Selecting matching instance:', instanceId, 'at index:', matchingIndex);
+        setCurrentEntryIndex(matchingIndex);
+        
+        // Update URL with instance_id parameter to keep it in sync
+        if (onInstanceSelect) {
+          onInstanceSelect(instanceId);
+        }
+      }
+    }
+  }, [instanceId, entries, currentEntryIndex, onInstanceSelect]);
 
   // Sort entries based on settings
   const sortAndSetEntries = (entriesToSort: JsonlEntry[], currentSettings: JsonlViewerSettingsType) => {
@@ -277,6 +339,28 @@ const JsonlViewer: React.FC<JsonlViewerProps> = ({ content }) => {
     return trajectoryItems.filter(shouldDisplayItem);
   }, [trajectoryItems]);
 
+  // Handle trajectory_step parameter from URL - scroll to that step
+  useEffect(() => {
+    if (trajectoryStep && filteredTrajectoryItems.length > 0) {
+      const stepIndex = parseInt(trajectoryStep, 10);
+      if (!isNaN(stepIndex) && stepIndex >= 0 && stepIndex < filteredTrajectoryItems.length) {
+        console.log('Scrolling to trajectory step:', stepIndex);
+        
+        // Find the DOM element for this step and scroll to it
+        setTimeout(() => {
+          const element = document.getElementById(`trajectory-step-${stepIndex}`);
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }, 100);
+        
+        if (onTrajectoryStepSelect) {
+          onTrajectoryStepSelect(stepIndex);
+        }
+      }
+    }
+  }, [trajectoryStep, filteredTrajectoryItems, onTrajectoryStepSelect]);
+
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* Settings */}
@@ -339,61 +423,89 @@ const JsonlViewer: React.FC<JsonlViewerProps> = ({ content }) => {
             </div>
             
             {/* Timeline Content - scrollable */}
-            <div className="flex-1 min-h-0 overflow-y-auto scrollbar scrollbar-w-1.5 scrollbar-thumb-gray-200/75 dark:scrollbar-thumb-gray-700/75 scrollbar-track-transparent hover:scrollbar-thumb-gray-300/75 dark:hover:scrollbar-thumb-gray-600/75 scrollbar-thumb-rounded p-4">
+            <div className="flex-1 min-h-0 overflow-y-auto scrollbar scrollbar-w-1.5 scrollbar-thumb-gray-200/75 dark:scrollbar-thumb-gray-700/75 scrollbar-track-transparent hover:scrollbar-thumb-gray-300/75 dark:hover:scrollbar-thumb-gray-600/75 scrollbar-thumb-rounded p-4" ref={menuRef}>
               {filteredTrajectoryItems.length > 0 ? (
                 <div className="flex flex-col items-center gap-4">
                   {filteredTrajectoryItems.map((item, index) => {
                     const trajectoryItem = item as unknown as TrajectoryItem;
                     
+                    // Render component with copy link button
+                    const renderWithCopyLink = (component: React.ReactNode) => (
+                      <div key={index} className="relative w-full max-w-[1000px]" id={`trajectory-step-${index}`}>
+                        {component}
+                        <div className="absolute top-2 right-2">
+                          <button
+                            onClick={() => setMenuOpenIndex(menuOpenIndex === index ? null : index)}
+                            className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400"
+                            aria-label="More options"
+                          >
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                            </svg>
+                          </button>
+                          {menuOpenIndex === index && (
+                            <div className="absolute right-0 mt-1 w-40 bg-white dark:bg-gray-800 rounded-md shadow-lg border border-gray-200 dark:border-gray-700 z-10">
+                              <button
+                                onClick={() => handleCopyStepLink(index)}
+                                className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                              >
+                                Copy link
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                    
                     // Check OpenHands history format first
                     if (isAgentContextEvent(item)) {
                       // Show agent context with skills as a dedicated component
-                      return <AgentContextComponent key={index} data={item} timestamp={item.timestamp} />;
+                      return renderWithCopyLink(<AgentContextComponent key={index} data={item} timestamp={item.timestamp} />);
                     } else if (isEnvironmentEvent(item)) {
-                      return <EnvironmentEventComponent key={index} event={item} />;
+                      return renderWithCopyLink(<EnvironmentEventComponent key={index} event={item} />);
                     } else if (isSystemPrompt(item)) {
-                      return <SystemPromptComponent key={index} data={item} />;
+                      return renderWithCopyLink(<SystemPromptComponent key={index} data={item} />);
                     } else if (isUserLLMMessage(item)) {
-                      return <UserLLMMessageComponent key={index} message={item} />;
+                      return renderWithCopyLink(<UserLLMMessageComponent key={index} message={item} />);
                     } else if (isAgentThought(item)) {
-                      return <AgentThoughtComponent key={index} thought={item} />;
+                      return renderWithCopyLink(<AgentThoughtComponent key={index} thought={item} />);
                     } else if (isAgentAction(item)) {
-                      return <AgentActionComponent key={index} action={item} />;
+                      return renderWithCopyLink(<AgentActionComponent key={index} action={item} />);
                     }
                     
                     // Then check standard format
                     if (isAgentStateChange(trajectoryItem)) {
-                      return <AgentStateChangeComponent key={index} state={trajectoryItem as any} />;
+                      return renderWithCopyLink(<AgentStateChangeComponent key={index} state={trajectoryItem as any} />);
                     } else if (isUserMessage(trajectoryItem)) {
-                      return <UserMessageComponent key={index} message={trajectoryItem as any} />;
+                      return renderWithCopyLink(<UserMessageComponent key={index} message={trajectoryItem as any} />);
                     } else if (isAssistantMessage(trajectoryItem)) {
-                      return <AssistantMessageComponent key={index} message={trajectoryItem as any} />;
+                      return renderWithCopyLink(<AssistantMessageComponent key={index} message={trajectoryItem as any} />);
                     } else if (isCommandAction(trajectoryItem)) {
-                      return <CommandActionComponent key={index} command={trajectoryItem as any} />;
+                      return renderWithCopyLink(<CommandActionComponent key={index} command={trajectoryItem as any} />);
                     } else if (isCommandObservation(trajectoryItem)) {
-                      return <CommandObservationComponent key={index} observation={trajectoryItem as any} />;
+                      return renderWithCopyLink(<CommandObservationComponent key={index} observation={trajectoryItem as any} />);
                     } else if (isIPythonAction(trajectoryItem)) {
-                      return <IPythonActionComponent key={index} action={trajectoryItem as any} />;
+                      return renderWithCopyLink(<IPythonActionComponent key={index} action={trajectoryItem as any} />);
                     } else if (isIPythonObservation(trajectoryItem)) {
-                      return <IPythonObservationComponent key={index} observation={trajectoryItem as any} />;
+                      return renderWithCopyLink(<IPythonObservationComponent key={index} observation={trajectoryItem as any} />);
                     } else if (isFinishAction(trajectoryItem)) {
-                      return <FinishActionComponent key={index} action={trajectoryItem as any} />;
+                      return renderWithCopyLink(<FinishActionComponent key={index} action={trajectoryItem as any} />);
                     } else if (isErrorObservation(trajectoryItem)) {
-                      return <ErrorObservationComponent key={index} observation={trajectoryItem as any} />;
+                      return renderWithCopyLink(<ErrorObservationComponent key={index} observation={trajectoryItem as any} />);
                     } else if (isReadAction(trajectoryItem)) {
-                      return <ReadActionComponent key={index} item={trajectoryItem as any} />;
+                      return renderWithCopyLink(<ReadActionComponent key={index} item={trajectoryItem as any} />);
                     } else if (isReadObservation(trajectoryItem)) {
-                      return <ReadObservationComponent key={index} observation={trajectoryItem as any} />;
+                      return renderWithCopyLink(<ReadObservationComponent key={index} observation={trajectoryItem as any} />);
                     } else if (isEditAction(trajectoryItem)) {
-                      return <EditActionComponent key={index} item={trajectoryItem as any} />;
+                      return renderWithCopyLink(<EditActionComponent key={index} item={trajectoryItem as any} />);
                     } else if (isEditObservation(trajectoryItem)) {
-                      return <EditObservationComponent key={index} observation={trajectoryItem as any} />;
+                      return renderWithCopyLink(<EditObservationComponent key={index} observation={trajectoryItem as any} />);
                     } else if (isThinkAction(trajectoryItem)) {
-                      return <ThinkActionComponent key={index} action={trajectoryItem as any} />;
+                      return renderWithCopyLink(<ThinkActionComponent key={index} action={trajectoryItem as any} />);
                     } else if (isThinkObservation(trajectoryItem)) {
-                      return <ThinkObservationComponent key={index} observation={trajectoryItem as any} />;
+                      return renderWithCopyLink(<ThinkObservationComponent key={index} observation={trajectoryItem as any} />);
                     } else {
-                      return (
+                      return renderWithCopyLink(
                         <TrajectoryCard key={index}>
                           <CSyntaxHighlighter
                             language="json"
