@@ -125,6 +125,7 @@ const TrajectoryCardHeader: React.FC<TrajectoryCardHeaderProps> = ({ children, c
     >
       <div>{children}</div>
       <div className="flex items-center">
+        <span>{extra ? "EXTRA!" : "NO EXTRA"}</span>
         {timestamp && (
           <span className="text-[9px] opacity-80">
             {new Date(timestamp).toLocaleString()}
