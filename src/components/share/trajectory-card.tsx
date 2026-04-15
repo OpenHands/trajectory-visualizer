@@ -52,7 +52,23 @@ export const TrajectoryCard: TrajectoryCardType = ({ children, className, origin
           <div className="flex-grow">
             {React.isValidElement(header) && React.cloneElement(header, { 
               timestamp,
-              extra: extra
+              extra: extra,
+              onToggleClick: (
+                <button
+                  className="px-1 py-1 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+                  aria-label={isCollapsed ? "Expand" : "Collapse"}
+                >
+                  {isCollapsed ? (
+                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  ) : (
+                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                    </svg>
+                  )}
+                </button>
+              )
             })}
           </div>
         </div>
