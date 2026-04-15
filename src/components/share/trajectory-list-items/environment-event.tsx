@@ -54,7 +54,8 @@ export const EnvironmentEventComponent: React.FC<EnvironmentEventProps> = ({ eve
             <JsonVisualizer 
               data={event.value} 
               excludeKeys={[]} 
-              initialExpanded={false} 
+              initialExpanded={false}
+              enableSearch={true}
             />
           </>
         ) : (
