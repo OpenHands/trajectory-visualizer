@@ -23,6 +23,7 @@ import {
   isThinkAction,
   isThinkObservation,
   isEnvironmentEvent,
+  isAgentContextEvent,
   isSystemPrompt,
   isUserLLMMessage,
   isAgentThought,
@@ -48,7 +49,8 @@ import {
   SystemPromptComponent,
   UserLLMMessageComponent,
   AgentThoughtComponent,
-  AgentActionComponent
+  AgentActionComponent,
+  AgentContextComponent
 } from "../share/trajectory-list-items";
 import { CSyntaxHighlighter } from "../syntax-highlighter";
 import { TrajectoryCard } from "../share/trajectory-card";
@@ -344,7 +346,10 @@ const JsonlViewer: React.FC<JsonlViewerProps> = ({ content }) => {
                     const trajectoryItem = item as unknown as TrajectoryItem;
                     
                     // Check OpenHands history format first
-                    if (isEnvironmentEvent(item)) {
+                    if (isAgentContextEvent(item)) {
+                      // Show agent context with skills as a dedicated component
+                      return <AgentContextComponent key={index} data={item} timestamp={item.timestamp} />;
+                    } else if (isEnvironmentEvent(item)) {
                       return <EnvironmentEventComponent key={index} event={item} />;
                     } else if (isSystemPrompt(item)) {
                       return <SystemPromptComponent key={index} data={item} />;

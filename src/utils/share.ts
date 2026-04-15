@@ -21,6 +21,11 @@ import {
 export const isEnvironmentEvent = (data: any): boolean =>
   data?.source === "environment" && data?.key !== undefined;
 
+export const isAgentContextEvent = (data: any): boolean =>
+  data?.source === "environment" && 
+  data?.key === "full_state" && 
+  data?.value?.agent?.agent_context?.skills?.length > 0;
+
 export const isSystemPrompt = (data: any): boolean =>
   data?.source === "agent" && data?.system_prompt !== undefined;
 
