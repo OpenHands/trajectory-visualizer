@@ -546,8 +546,7 @@ const App: React.FC<{ router?: boolean }> = ({ router = true }) => {
             })
             .finally(() => {
               setIsLoadingTrajectory(false);
-              // Clear the URL parameter to avoid reloading the same data
-              navigate(location.pathname, { replace: true });
+              // Keep the inUrl parameter in the URL for sharing purposes
             });
           
           return;
