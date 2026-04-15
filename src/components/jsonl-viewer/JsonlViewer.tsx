@@ -505,7 +505,8 @@ const JsonlViewer: React.FC<JsonlViewerProps> = ({ content }) => {
                           >
                             {JSON.stringify(item, null, 2)}
                           </CSyntaxHighlighter>
-                        </TrajectoryCard>
+                        </TrajectoryCard>,
+                        index
                       );
                     }
                   })}
