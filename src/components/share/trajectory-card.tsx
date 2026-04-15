@@ -8,6 +8,7 @@ interface TrajectoryTempateProps {
   originalJson?: any;
   defaultCollapsed?: boolean;
   timestamp?: string;
+  action?: React.ReactNode;
 }
 
 interface TrajectoryCardType extends React.FC<TrajectoryTempateProps> {
@@ -15,7 +16,7 @@ interface TrajectoryCardType extends React.FC<TrajectoryTempateProps> {
   Body: React.FC<TrajectoryCardBodyProps>;
 }
 
-export const TrajectoryCard: TrajectoryCardType = ({ children, className, originalJson, defaultCollapsed = false, timestamp }) => {
+export const TrajectoryCard: TrajectoryCardType = ({ children, className, originalJson, defaultCollapsed = false, timestamp, action }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
   
@@ -47,7 +48,7 @@ export const TrajectoryCard: TrajectoryCardType = ({ children, className, origin
           onClick={() => setIsCollapsed(!isCollapsed)}
         >
           <div className="flex-grow">
-            {React.isValidElement(header) && React.cloneElement(header, { timestamp })}
+            {React.isValidElement(header) && React.cloneElement(header, { timestamp, action })}
           </div>
           <button
             className="px-2 py-1 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
@@ -103,9 +104,10 @@ interface TrajectoryCardHeaderProps {
   children: React.ReactNode;
   className?: React.HTMLAttributes<HTMLDivElement>["className"];
   timestamp?: string;
+  action?: React.ReactNode;
 }
 
-const TrajectoryCardHeader: React.FC<TrajectoryCardHeaderProps> = ({ children, className, timestamp }) => {
+const TrajectoryCardHeader: React.FC<TrajectoryCardHeaderProps> = ({ children, className, timestamp, action }) => {
   return (
     <div
       className={clsx(
@@ -114,11 +116,14 @@ const TrajectoryCardHeader: React.FC<TrajectoryCardHeaderProps> = ({ children, c
       )}
     >
       <div>{children}</div>
-      {timestamp && (
-        <div className="text-[9px] opacity-80">
-          {new Date(timestamp).toLocaleString()}
-        </div>
-      )}
+      <div className="flex items-center gap-2">
+        {action}
+        {timestamp && (
+          <div className="text-[9px] opacity-80">
+            {new Date(timestamp).toLocaleString()}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

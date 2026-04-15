@@ -399,55 +399,68 @@ const JsonlViewer: React.FC<JsonlViewerProps> = ({ content }) => {
                   {filteredTrajectoryItems.map((item, index) => {
                     const trajectoryItem = item as unknown as TrajectoryItem;
                     
-                    // Wrap trajectory items with ID and menu button
-                    const wrapWithWrapper = (element: React.ReactNode, idx: number) => (
-                      <div id={`trajectory-step-${idx}`} className="relative group w-full max-w-[1000px]">
-                        {element}
-                        {/* ... menu for trajectory step */}
-                        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <div className="relative">
+                    // Create menu button for trajectory step
+                    const createMenuButton = (idx: number) => (
+                      <div className="relative">
+                        <button
+                          className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                          title="More options"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setOpenMenuIndex(openMenuIndex === idx ? null : idx);
+                          }}
+                        >
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                          </svg>
+                        </button>
+                        {/* Dropdown menu */}
+                        {openMenuIndex === idx && (
+                          <div className="absolute right-0 top-6 z-10 min-w-[140px] bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg py-1">
                             <button
-                              className="p-1.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded text-gray-600 dark:text-gray-300"
-                              title="More options"
+                              className="w-full px-3 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                setOpenMenuIndex(openMenuIndex === idx ? null : idx);
+                                const instanceId = entries[currentEntryIndex]?.instance_id;
+                                const stepId = idx.toString();
+                                const baseUrl = window.location.href.split('?')[0];
+                                const url = `${baseUrl}?instance_id=${encodeURIComponent(instanceId || '')}&trajectory_step=${stepId}`;
+                                navigator.clipboard.writeText(url).then(() => {
+                                  alert('Link copied to clipboard!');
+                                }).catch(err => {
+                                  console.error('Failed to copy link:', err);
+                                });
+                                setOpenMenuIndex(null);
                               }}
                             >
                               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
                               </svg>
+                              Copy link
                             </button>
-                            {/* Dropdown menu */}
-                            {openMenuIndex === idx && (
-                              <div className="absolute right-0 top-8 z-10 min-w-[140px] bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg py-1">
-                                <button
-                                  className="w-full px-3 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    const instanceId = entries[currentEntryIndex]?.instance_id;
-                                    const stepId = idx.toString();
-                                    const baseUrl = window.location.href.split('?')[0];
-                                    const url = `${baseUrl}?instance_id=${encodeURIComponent(instanceId || '')}&trajectory_step=${stepId}`;
-                                    navigator.clipboard.writeText(url).then(() => {
-                                      alert('Link copied to clipboard!');
-                                    }).catch(err => {
-                                      console.error('Failed to copy link:', err);
-                                    });
-                                    setOpenMenuIndex(null);
-                                  }}
-                                >
-                                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
-                                  </svg>
-                                  Copy link
-                                </button>
-                              </div>
-                            )}
                           </div>
-                        </div>
+                        )}
                       </div>
                     );
+                    
+                    // Wrap with ID and pass action to TrajectoryCard components
+                    const wrapWithWrapper = (element: React.ReactNode, idx: number) => {
+                      if (!React.isValidElement(element)) {
+                        return <div id={`trajectory-step-${idx}`}>{element}</div>;
+                      }
+                      
+                      const elem = element as React.ReactElement<any>;
+                      // Check if this is a TrajectoryCard
+                      const isTrajectoryCard = elem.type === TrajectoryCard || (elem.type as any)?.name === 'TrajectoryCard';
+                      if (isTrajectoryCard) {
+                        return React.cloneElement(elem, { 
+                          action: createMenuButton(idx),
+                          id: `trajectory-step-${idx}`
+                        });
+                      }
+                      
+                      return <div id={`trajectory-step-${idx}`}>{element}</div>;
+                    };
                     
                     // Check OpenHands history format first
                     if (isAgentContextEvent(item)) {
