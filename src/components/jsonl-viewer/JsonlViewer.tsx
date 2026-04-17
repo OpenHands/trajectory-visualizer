@@ -141,7 +141,6 @@ const JsonlViewer: React.FC<JsonlViewerProps> = ({
         entry.instance_id === instanceId
       );
       if (matchingIndex !== -1 && matchingIndex !== currentEntryIndex) {
-        console.log('Selecting matching instance:', instanceId, 'at index:', matchingIndex);
         setCurrentEntryIndex(matchingIndex);
         
         // Update URL with instance_id parameter to keep it in sync
@@ -344,8 +343,6 @@ const JsonlViewer: React.FC<JsonlViewerProps> = ({
     if (trajectoryStep && filteredTrajectoryItems.length > 0) {
       const stepIndex = parseInt(trajectoryStep, 10);
       if (!isNaN(stepIndex) && stepIndex >= 0 && stepIndex < filteredTrajectoryItems.length) {
-        console.log('Scrolling to trajectory step:', stepIndex);
-        
         // Find the DOM element for this step and scroll to it
         setTimeout(() => {
           const element = document.getElementById(`trajectory-step-${stepIndex}`);
