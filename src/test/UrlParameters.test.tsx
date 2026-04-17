@@ -68,8 +68,8 @@ describe('instance_id and trajectory_step URL Parameters', () => {
 
     // Wait for the component to process the URL
     await waitFor(() => {
-      // Verify the instance_id parameter was logged (meaning it was parsed)
-      expect(consoleLogSpy).toHaveBeenCalledWith('Found instance_id parameter:', 'test-instance-123');
+      // Verify the debug console.log is NOT called (parameters should be handled silently via state)
+      expect(consoleLogSpy).not.toHaveBeenCalledWith('Found instance_id parameter:', 'test-instance-123');
     });
   });
 
@@ -83,7 +83,8 @@ describe('instance_id and trajectory_step URL Parameters', () => {
 
     // Wait for the component to process the URL
     await waitFor(() => {
-      expect(consoleLogSpy).toHaveBeenCalledWith('Found trajectory_step parameter:', '5');
+      // Verify the debug console.log is NOT called
+      expect(consoleLogSpy).not.toHaveBeenCalledWith('Found trajectory_step parameter:', '5');
     });
   });
 
@@ -97,8 +98,9 @@ describe('instance_id and trajectory_step URL Parameters', () => {
 
     // Wait for the component to process the URL
     await waitFor(() => {
-      expect(consoleLogSpy).toHaveBeenCalledWith('Found instance_id parameter:', 'test-456');
-      expect(consoleLogSpy).toHaveBeenCalledWith('Found trajectory_step parameter:', '10');
+      // Verify the debug console.logs are NOT called
+      expect(consoleLogSpy).not.toHaveBeenCalledWith('Found instance_id parameter:', 'test-456');
+      expect(consoleLogSpy).not.toHaveBeenCalledWith('Found trajectory_step parameter:', '10');
     });
   });
 });

@@ -374,6 +374,15 @@ const App: React.FC<{ router?: boolean }> = ({ router = true }) => {
     const location = useLocation();
     const [uploadedContent, setUploadedContent] = useState<UploadContent | null>(null);
     const [isLoadingTrajectory, setIsLoadingTrajectory] = useState<boolean>(false);
+    const [urlInstanceId, setUrlInstanceId] = useState<string | undefined>(undefined);
+    const [urlTrajectoryStep, setUrlTrajectoryStep] = useState<string | undefined>(undefined);
+    
+    // Sync URL parameters to state when location changes
+    useEffect(() => {
+      const searchParams = new URLSearchParams(location.search);
+      setUrlInstanceId(searchParams.get('instance_id') || undefined);
+      setUrlTrajectoryStep(searchParams.get('trajectory_step') || undefined);
+    }, [location.search]);
     
     // Check for URL parameters and localStorage on initial load
     useEffect(() => {
@@ -401,10 +410,10 @@ const App: React.FC<{ router?: boolean }> = ({ router = true }) => {
         
         // Store URL parameters for passing to components
         if (instanceIdParam) {
-          console.log('Found instance_id parameter:', instanceIdParam);
+          setUrlInstanceId(instanceIdParam);
         }
         if (trajectoryStepParam) {
-          console.log('Found trajectory_step parameter:', trajectoryStepParam);
+          setUrlTrajectoryStep(trajectoryStepParam);
         }
         
         // Process embedded data parameter
@@ -761,8 +770,8 @@ const App: React.FC<{ router?: boolean }> = ({ router = true }) => {
                   workflow_name: 'Local Trajectory'
                 }}
                 initialContent={uploadedContent}
-                instanceId={new URLSearchParams(location.search).get('instance_id') || undefined}
-                trajectoryStep={new URLSearchParams(location.search).get('trajectory_step') || undefined}
+                instanceId={urlInstanceId}
+                trajectoryStep={urlTrajectoryStep}
               />
             </div>
           ) : owner && repo ? (
