@@ -57,20 +57,37 @@ import { TrajectoryCard } from "../share/trajectory-card";
 
 interface JsonlViewerProps {
   content: string;
+  jsonlFiles?: Record<string, string>;
+  selectedJsonlFile?: string;
 }
 
-const JsonlViewer: React.FC<JsonlViewerProps> = ({ content }) => {
+const JsonlViewer: React.FC<JsonlViewerProps> = ({ content, jsonlFiles, selectedJsonlFile }) => {
+  const availableJsonlFiles = jsonlFiles;
   const [entries, setEntries] = useState<JsonlEntry[]>([]);
   const [currentEntryIndex, setCurrentEntryIndex] = useState<number>(0);
   const [error, setError] = useState<string | null>(null);
   const [trajectoryItems, setTrajectoryItems] = useState<TrajectoryHistoryEntry[]>([]);
   const [settings, setSettings] = useState<JsonlViewerSettingsType>(DEFAULT_JSONL_VIEWER_SETTINGS);
   const [originalEntries, setOriginalEntries] = useState<JsonlEntry[]>([]);
+  const [currentContent, setCurrentContent] = useState(content);
 
   // Parse the JSONL file on component mount or when content changes
   useEffect(() => {
+    setCurrentContent(content);
+  }, [content]);
+
+  // Re-parse when selected file changes
+  useEffect(() => {
+    if (jsonlFiles && selectedJsonlFile && jsonlFiles[selectedJsonlFile]) {
+      const newContent = jsonlFiles[selectedJsonlFile];
+      setCurrentContent(newContent);
+    }
+  }, [selectedJsonlFile, jsonlFiles]);
+
+  // Parse content when currentContent changes
+  useEffect(() => {
     try {
-      const parsedEntries = parseJsonlFile(content);
+      const parsedEntries = parseJsonlFile(currentContent);
       setOriginalEntries(parsedEntries);
       
       // Apply initial sorting
@@ -88,7 +105,7 @@ const JsonlViewer: React.FC<JsonlViewerProps> = ({ content }) => {
       setError(`Failed to parse JSONL file: ${err instanceof Error ? err.message : 'Unknown error'}`);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [content]);
+  }, [currentContent]);
 
   // Sort entries based on settings
   const sortAndSetEntries = (entriesToSort: JsonlEntry[], currentSettings: JsonlViewerSettingsType) => {
@@ -282,7 +299,8 @@ const JsonlViewer: React.FC<JsonlViewerProps> = ({ content }) => {
       {/* Settings */}
       <JsonlViewerSettings 
         settings={settings} 
-        onSettingsChange={handleSettingsChange} 
+        onSettingsChange={handleSettingsChange}
+        availableJsonlFiles={availableJsonlFiles}
       />
       
       {/* Main content with sidebar and metadata */}
@@ -292,6 +310,11 @@ const JsonlViewer: React.FC<JsonlViewerProps> = ({ content }) => {
           <div className="flex-none px-3 py-2 border-b border-gray-200 dark:border-gray-700">
             <h3 className="text-sm font-medium text-gray-900 dark:text-white">
               Evaluation Instances ({entries.length})
+              {settings.selectedJsonlFile && (
+                <span className="ml-2 text-xs font-normal text-gray-500 dark:text-gray-400">
+                  - {settings.selectedJsonlFile.split('/').pop()}
+                </span>
+              )}
             </h3>
             <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
               Sorted by: {settings.sortField} ({settings.sortDirection === 'asc' ? 'ascending' : 'descending'})

@@ -65,7 +65,7 @@ describe('extractFromTar', () => {
     ]);
     
     const result = extractFromTar(tar);
-    expect(result.jsonlContent).toBe('{"instance_id":"test1"}\n{"instance_id":"test2"}');
+    expect(result.jsonlFiles['eval_results/output.jsonl']).toBe('{"instance_id":"test1"}\n{"instance_id":"test2"}');
     expect(result.reportContent).toBeNull();
   });
 
@@ -75,7 +75,7 @@ describe('extractFromTar', () => {
     ]);
     
     const result = extractFromTar(tar);
-    expect(result.jsonlContent).toBeNull();
+    expect(Object.keys(result.jsonlFiles).length).toBe(0);
     expect(result.reportContent).toEqual({ total: 10, passed: 8 });
   });
 
@@ -86,7 +86,7 @@ describe('extractFromTar', () => {
     ]);
     
     const result = extractFromTar(tar);
-    expect(result.jsonlContent).toBe('{"instance_id":"test"}');
+    expect(result.jsonlFiles['eval_results/output.jsonl']).toBe('{"instance_id":"test"}');
     expect(result.reportContent).toEqual({ total: 1 });
   });
 
@@ -97,13 +97,13 @@ describe('extractFromTar', () => {
     ]);
     
     const result = extractFromTar(tar);
-    expect(result.jsonlContent).toBe('main content');
+    expect(result.jsonlFiles['eval_results/output.jsonl']).toBe('main content');
   });
 
-  it('returns null for empty archive', () => {
+  it('returns empty object for empty archive', () => {
     const tar = createTar([]);
     const result = extractFromTar(tar);
-    expect(result.jsonlContent).toBeNull();
+    expect(Object.keys(result.jsonlFiles).length).toBe(0);
     expect(result.reportContent).toBeNull();
   });
 
@@ -119,6 +119,22 @@ describe('extractFromTar', () => {
     ]);
     
     const result = extractFromTar(tar);
-    expect(result.jsonlContent).toBeNull(); // Empty content not matched
+    expect(Object.keys(result.jsonlFiles).length).toBe(0); // Empty content not matched
+  });
+
+  it('extracts critic_attempt files', () => {
+    const tar = createTar([
+      { name: 'eval_results/output.jsonl', content: 'main content' },
+      { name: 'eval_results/output.critic_attempt_1.jsonl', content: 'critic 1' },
+      { name: 'eval_results/output.critic_attempt_2.jsonl', content: 'critic 2' },
+      { name: 'eval_results/output.critic_attempt_3.jsonl', content: 'critic 3' },
+    ]);
+    
+    const result = extractFromTar(tar);
+    expect(Object.keys(result.jsonlFiles).length).toBe(4);
+    expect(result.jsonlFiles['eval_results/output.jsonl']).toBe('main content');
+    expect(result.jsonlFiles['eval_results/output.critic_attempt_1.jsonl']).toBe('critic 1');
+    expect(result.jsonlFiles['eval_results/output.critic_attempt_2.jsonl']).toBe('critic 2');
+    expect(result.jsonlFiles['eval_results/output.critic_attempt_3.jsonl']).toBe('critic 3');
   });
 });

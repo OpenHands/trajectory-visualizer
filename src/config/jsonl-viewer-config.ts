@@ -26,5 +26,6 @@ export const COMMON_DISPLAY_FIELDS: string[] = [
 export const DEFAULT_JSONL_VIEWER_SETTINGS = {
   sortField: 'instance_id',
   sortDirection: 'asc' as const,
-  displayFields: [...COMMON_DISPLAY_FIELDS]
+  displayFields: [...COMMON_DISPLAY_FIELDS],
+  selectedJsonlFile: undefined as string | undefined
 };

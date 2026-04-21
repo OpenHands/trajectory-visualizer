@@ -384,6 +384,7 @@ const App: React.FC<{ router?: boolean }> = ({ router = true }) => {
         const dataParam = searchParams.get('data');
         const fileUrlParam = searchParams.get('fileUrl');
         const inUrlParam = searchParams.get('inUrl');
+        const outputFileParam = searchParams.get('outputFile');
         
         // Process embedded data parameter
         if (dataParam) {
@@ -392,6 +393,16 @@ const App: React.FC<{ router?: boolean }> = ({ router = true }) => {
             const decodedData = atob(decodeURIComponent(dataParam));
             const parsedData = JSON.parse(decodedData);
             console.log('Found trajectory data in URL:', parsedData);
+            
+            // Apply outputFile selection if present in URL
+            if (outputFileParam && parsedData?.content?.jsonlFiles) {
+              const selectedFile = decodeURIComponent(outputFileParam);
+              if (parsedData.content.jsonlFiles[selectedFile]) {
+                parsedData.content.selectedJsonlFile = selectedFile;
+                parsedData.content.jsonlContent = parsedData.content.jsonlFiles[selectedFile];
+                console.log('Setting selected output file:', selectedFile);
+              }
+            }
             
             // Set the uploaded content
             setUploadedContent(parsedData);
@@ -521,16 +532,22 @@ const App: React.FC<{ router?: boolean }> = ({ router = true }) => {
               }
               
               console.log('Extracting from tar...');
-              const { jsonlContent, reportContent } = extractFromTar(decompressed);
+              const { jsonlFiles, reportContent } = extractFromTar(decompressed);
               
-              if (!jsonlContent) {
+              if (Object.keys(jsonlFiles).length === 0) {
                 throw new Error('No JSONL content found in archive');
               }
+              
+              // Get the first available JSONL file for backward compatibility
+              const firstJsonlFile = Object.keys(jsonlFiles)[0];
+              const firstJsonlContent = jsonlFiles[firstJsonlFile];
               
               setUploadedContent({
                 content: {
                   fileType: 'full_archive' as const,
-                  jsonlContent,
+                  jsonlFiles,
+                  selectedJsonlFile: firstJsonlFile,
+                  jsonlContent: firstJsonlContent,
                   reportContent
                 }
               });

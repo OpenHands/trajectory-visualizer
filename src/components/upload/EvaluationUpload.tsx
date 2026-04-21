@@ -33,16 +33,22 @@ export const EvaluationUpload: React.FC<EvaluationUploadProps> = ({ onUpload }) 
         }
         
         console.log('Extracting from tar...');
-        const { jsonlContent, reportContent } = extractFromTar(decompressed);
+        const { jsonlFiles, reportContent } = extractFromTar(decompressed);
         
-        if (!jsonlContent) {
+        if (Object.keys(jsonlFiles).length === 0) {
           throw new Error('No JSONL content found in archive');
         }
+        
+        // Get the first available JSONL file for backward compatibility
+        const firstJsonlFile = Object.keys(jsonlFiles)[0];
+        const firstJsonlContent = jsonlFiles[firstJsonlFile];
         
         onUpload({
           content: {
             fileType: 'full_archive' as const,
-            jsonlContent,
+            jsonlFiles,
+            selectedJsonlFile: firstJsonlFile,
+            jsonlContent: firstJsonlContent,
             reportContent
           }
         });
