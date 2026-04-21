@@ -84,13 +84,13 @@ const JsonlViewer: React.FC<JsonlViewerProps> = ({ content, jsonlFiles, selected
     }
   }, [selectedJsonlFile, jsonlFiles]);
 
-  // Parse content when currentContent changes
+  // Parse content when currentContent or settings change
   useEffect(() => {
     try {
       const parsedEntries = parseJsonlFile(currentContent);
       setOriginalEntries(parsedEntries);
       
-      // Apply initial sorting
+      // Apply sorting when content is parsed or when settings change
       sortAndSetEntries(parsedEntries, settings);
       
       // Extract trajectory items if available
@@ -105,7 +105,7 @@ const JsonlViewer: React.FC<JsonlViewerProps> = ({ content, jsonlFiles, selected
       setError(`Failed to parse JSONL file: ${err instanceof Error ? err.message : 'Unknown error'}`);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentContent]);
+  }, [currentContent, settings]);
 
   // Sort entries based on settings
   const sortAndSetEntries = (entriesToSort: JsonlEntry[], currentSettings: JsonlViewerSettingsType) => {
@@ -162,7 +162,6 @@ const JsonlViewer: React.FC<JsonlViewerProps> = ({ content, jsonlFiles, selected
   // Handle settings changes
   const handleSettingsChange = (newSettings: JsonlViewerSettingsType) => {
     setSettings(newSettings);
-    sortAndSetEntries(originalEntries, newSettings);
   };
 
   const handleSelectEntry = (index: number) => {
