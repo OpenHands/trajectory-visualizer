@@ -68,7 +68,6 @@ const JsonlViewer: React.FC<JsonlViewerProps> = ({ content, jsonlFiles, selected
   const [error, setError] = useState<string | null>(null);
   const [trajectoryItems, setTrajectoryItems] = useState<TrajectoryHistoryEntry[]>([]);
   const [settings, setSettings] = useState<JsonlViewerSettingsType>(DEFAULT_JSONL_VIEWER_SETTINGS);
-  const [originalEntries, setOriginalEntries] = useState<JsonlEntry[]>([]);
   const [currentContent, setCurrentContent] = useState(content);
 
   // Parse the JSONL file on component mount or when content changes
@@ -88,7 +87,6 @@ const JsonlViewer: React.FC<JsonlViewerProps> = ({ content, jsonlFiles, selected
   useEffect(() => {
     try {
       const parsedEntries = parseJsonlFile(currentContent);
-      setOriginalEntries(parsedEntries);
       
       // Apply sorting when content is parsed or when settings change
       sortAndSetEntries(parsedEntries, settings);
