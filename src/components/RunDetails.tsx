@@ -113,7 +113,11 @@ const RunDetails: React.FC<RunDetailsProps> = ({ owner, repo, run, initialConten
     console.log('Rendering full_archive JSONL viewer with content:', artifactContent.content.jsonlContent.substring(0, 100) + '...');
     return (
       <div className="flex flex-col h-full overflow-hidden">
-        <JsonlViewer content={artifactContent.content.jsonlContent} />
+        <JsonlViewer 
+          content={artifactContent.content.jsonlContent} 
+          jsonlFiles={artifactContent.content.jsonlFiles}
+          selectedJsonlFile={artifactContent.content.selectedJsonlFile}
+        />
       </div>
     );
   }

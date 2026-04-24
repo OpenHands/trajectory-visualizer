@@ -7,29 +7,36 @@ import {
 export interface JsonlViewerSettingsProps {
   onSettingsChange: (settings: JsonlViewerSettings) => void;
   settings: JsonlViewerSettings;
+  availableJsonlFiles?: Record<string, string>;
 }
 
 export interface JsonlViewerSettings {
   sortField: string;
   sortDirection: 'asc' | 'desc';
   displayFields: string[];
+  selectedJsonlFile?: string;
 }
 
 const JsonlViewerSettings: React.FC<JsonlViewerSettingsProps> = ({ 
   onSettingsChange, 
-  settings 
+  settings,
+  availableJsonlFiles
 }) => {
+  const availableFiles = availableJsonlFiles ? Object.keys(availableJsonlFiles) : [];
+  const hasMultipleFiles = availableFiles.length > 1;
   const [isOpen, setIsOpen] = useState(false);
   const [sortField, setSortField] = useState(settings.sortField);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>(settings.sortDirection);
   const [displayFields, setDisplayFields] = useState<string[]>(settings.displayFields);
   const [newField, setNewField] = useState('');
+  const [selectedJsonlFile, setSelectedJsonlFile] = useState(settings.selectedJsonlFile || '');
 
   const handleSave = () => {
     onSettingsChange({
       sortField,
       sortDirection,
-      displayFields
+      displayFields,
+      selectedJsonlFile: selectedJsonlFile || undefined
     });
     setIsOpen(false);
   };
@@ -90,6 +97,32 @@ const JsonlViewerSettings: React.FC<JsonlViewerSettingsProps> = ({
       {isOpen && (
         <div className="mt-2 p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-sm">
           <div className="space-y-4">
+            {/* Output File Selection - Only show if multiple files available */}
+            {hasMultipleFiles && (
+              <div>
+                <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Output File</h3>
+                <div>
+                  <label htmlFor="jsonl-file" className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+                    Select output file to display
+                  </label>
+                  <select
+                    id="jsonl-file"
+                    value={selectedJsonlFile}
+                    onChange={(e) => setSelectedJsonlFile(e.target.value)}
+                    className="w-full px-2 py-1 text-sm border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  >
+                    <option value="">Select output file...</option>
+                    {availableFiles.map(file => (
+                      <option key={file} value={file}>{file}</option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    Choose which output file to display. This selection is saved in the URL for sharing.
+                  </p>
+                </div>
+              </div>
+            )}
+
             {/* Sort Settings */}
             <div>
               <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Sort Entries</h3>

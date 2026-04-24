@@ -12,7 +12,9 @@ export interface TrajectoryUploadContent {
 }
 
 export interface FullArchiveUploadContent {
-  jsonlContent: string;
+  jsonlFiles?: Record<string, string>;
+  selectedJsonlFile?: string;
+  jsonlContent?: string;
   reportContent?: any;
   fileType: 'full_archive';
 }
