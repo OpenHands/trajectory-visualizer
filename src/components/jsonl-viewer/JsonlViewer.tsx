@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { JsonlEntry, parseJsonlFile } from '../../utils/jsonl-parser';
 import JsonlViewerSettings, { JsonlViewerSettings as JsonlViewerSettingsType } from './JsonlViewerSettings';
 import { getNestedValue, formatValueForDisplay } from '../../utils/object-utils';
@@ -60,12 +61,65 @@ interface JsonlViewerProps {
 }
 
 const JsonlViewer: React.FC<JsonlViewerProps> = ({ content }) => {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [entries, setEntries] = useState<JsonlEntry[]>([]);
   const [currentEntryIndex, setCurrentEntryIndex] = useState<number>(0);
   const [error, setError] = useState<string | null>(null);
   const [trajectoryItems, setTrajectoryItems] = useState<TrajectoryHistoryEntry[]>([]);
   const [settings, setSettings] = useState<JsonlViewerSettingsType>(DEFAULT_JSONL_VIEWER_SETTINGS);
   const [originalEntries, setOriginalEntries] = useState<JsonlEntry[]>([]);
+  const [initializedFromUrl, setInitializedFromUrl] = useState<boolean>(false);
+
+  // Effect to handle instance selection from URL on mount
+  useEffect(() => {
+    if (entries.length === 0 || initializedFromUrl) return;
+
+    const instanceParam = searchParams.get('instance');
+    if (instanceParam) {
+      // Find the entry with matching instance_id
+      const matchingIndex = entries.findIndex(entry => entry.instance_id === instanceParam);
+      if (matchingIndex !== -1) {
+        setCurrentEntryIndex(matchingIndex);
+        // Update trajectory items
+        const selectedEntry = entries[matchingIndex];
+        if (selectedEntry.history && Array.isArray(selectedEntry.history)) {
+          setTrajectoryItems(selectedEntry.history);
+        } else {
+          setTrajectoryItems([]);
+        }
+      }
+    }
+    // Mark as initialized even if there's no instance param or it wasn't found
+    setInitializedFromUrl(true);
+  }, [entries, initializedFromUrl, searchParams]);
+
+  // Effect to handle URL changes (browser back/forward navigation)
+  useEffect(() => {
+    if (!initializedFromUrl) return;
+
+    const instanceParam = searchParams.get('instance');
+    if (instanceParam) {
+      const matchingIndex = entries.findIndex(entry => entry.instance_id === instanceParam);
+      if (matchingIndex !== -1 && matchingIndex !== currentEntryIndex) {
+        setCurrentEntryIndex(matchingIndex);
+        const selectedEntry = entries[matchingIndex];
+        if (selectedEntry.history && Array.isArray(selectedEntry.history)) {
+          setTrajectoryItems(selectedEntry.history);
+        } else {
+          setTrajectoryItems([]);
+        }
+      }
+    } else if (currentEntryIndex !== 0) {
+      // If no instance param and we were not on first entry, go to first
+      setCurrentEntryIndex(0);
+      const firstEntry = entries[0];
+      if (firstEntry.history && Array.isArray(firstEntry.history)) {
+        setTrajectoryItems(firstEntry.history);
+      } else {
+        setTrajectoryItems([]);
+      }
+    }
+  }, [searchParams, entries, initializedFromUrl, currentEntryIndex]);
 
   // Parse the JSONL file on component mount or when content changes
   useEffect(() => {
@@ -148,7 +202,8 @@ const JsonlViewer: React.FC<JsonlViewerProps> = ({ content }) => {
     sortAndSetEntries(originalEntries, newSettings);
   };
 
-  const handleSelectEntry = (index: number) => {
+  // Handle selection of an entry and update URL
+  const handleSelectEntry = useCallback((index: number) => {
     setCurrentEntryIndex(index);
     
     // Update trajectory items when selecting a new entry
@@ -159,8 +214,18 @@ const JsonlViewer: React.FC<JsonlViewerProps> = ({ content }) => {
       } else {
         setTrajectoryItems([]);
       }
+      
+      // Update URL with the instance parameter
+      if (selectedEntry.instance_id) {
+        setSearchParams({ instance: selectedEntry.instance_id }, { replace: true });
+      } else {
+        // Remove the instance parameter if no instance_id
+        const newParams = new URLSearchParams(searchParams);
+        newParams.delete('instance');
+        setSearchParams(newParams, { replace: true });
+      }
     }
-  };
+  }, [entries, searchParams, setSearchParams]);
 
   // Get entry display name for the sidebar
   const getEntryDisplayName = (entry: JsonlEntry, index: number): string => {
