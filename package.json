@@ -8,27 +8,27 @@
   "private": true,
   "type": "module",
   "overrides": {
-    "diff": "8.0.3"
+    "diff": "9.0.0"
   },
   "dependencies": {
     "@types/pako": "^2.0.4",
-    "axios": "^1.13.2",
+    "axios": "^1.16.1",
     "browser-process-hrtime": "^1.0.0",
     "clsx": "^2.1.1",
-    "diff": "8.0.3",
+    "diff": "9.0.0",
     "jszip": "^3.10.1",
     "pako": "^2.1.0",
     "path-browserify": "^1.0.1",
-    "react": "^19.2.3",
-    "react-diff-viewer-continued": "^4.0.6",
-    "react-dom": "^19.2.3",
-    "react-dropzone": "^14.3.8",
-    "react-icons": "^5.5.0",
+    "react": "^19.2.6",
+    "react-diff-viewer-continued": "^4.2.2",
+    "react-dom": "^19.2.6",
+    "react-dropzone": "^15.0.0",
+    "react-icons": "^5.6.0",
     "react-markdown": "^10.1.0",
-    "react-router-dom": "^7.12.0",
-    "react-syntax-highlighter": "^16.1.0",
+    "react-router-dom": "^7.15.1",
+    "react-syntax-highlighter": "^16.1.1",
     "remark-gfm": "^4.0.1",
-    "web-vitals": "^5.1.0"
+    "web-vitals": "^5.2.0"
   },
   "scripts": {
     "start": "vite",
@@ -39,23 +39,26 @@
     "pre-commit": "./pre-commit-check.sh"
   },
   "devDependencies": {
+    "@tailwindcss/postcss": "^4.3.0",
     "@tailwindcss/typography": "^0.5.19",
     "@testing-library/jest-dom": "^6.9.1",
-    "@testing-library/react": "^16.3.1",
+    "@testing-library/react": "^16.3.2",
     "@types/jest": "^30.0.0",
-    "@types/node": "^25.0.3",
-    "@types/react": "^19.2.7",
+    "@types/node": "^25.9.0",
+    "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@types/react-syntax-highlighter": "^15.5.13",
-    "@vitejs/plugin-react": "^5.1.2",
-    "autoprefixer": "^10.4.23",
-    "jsdom": "^27.4.0",
-    "postcss": "^8.5.6",
-    "tailwind-scrollbar": "^3.1.0",
-    "tailwindcss": "^3.4.19",
-    "typescript": "^5.9.3",
-    "vite": "^7.3.1",
-    "vite-tsconfig-paths": "^6.0.3",
-    "vitest": "^4.0.16"
+    "@vitejs/plugin-react": "^6.0.2",
+    "autoprefixer": "^10.5.0",
+    "jsdom": "^29.1.1",
+    "postcss": "^8.5.14",
+    "tailwind-scrollbar": "^4.0.2",
+    "tailwindcss": "^4.3.0",
+    "typescript": "^6.0.3",
+    "vite": "^8.0.13",
+    "vitest": "^4.1.6"
+  },
+  "engines": {
+    "node": ">=20.19"
   }
 }
