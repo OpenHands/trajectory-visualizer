@@ -1,11 +1,18 @@
-/* Import Tailwind CSS base styles */
-@tailwind base;
+/* Tailwind CSS v4 entrypoint */
+@import "tailwindcss";
 
-/* Import Tailwind CSS component styles */
-@tailwind components;
+/* Plugins (Tailwind v4 CSS-first config) */
+@plugin "@tailwindcss/typography";
+@plugin "tailwind-scrollbar";
 
-/* Import Tailwind CSS utility styles */
-@tailwind utilities;
+/* Class-based dark mode (replaces darkMode: 'class' from v3 config) */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Tell Tailwind v4 explicitly where to look for utility class usage.
+   Required because the project root contains `index.html` outside `src/`,
+   and we want to be explicit about TS/TSX source files. */
+@source "../index.html";
+@source "./**/*.{js,ts,jsx,tsx}";
 
 /* Custom base styles */
 html, body {
