@@ -1,5 +1,6 @@
 import React from 'react';
 import { TrajectoryCard } from "../trajectory-card";
+import { ToolCallMetadataDisplay } from './tool-call-metadata';
 
 interface ThinkObservation {
   id: number;
@@ -10,6 +11,7 @@ interface ThinkObservation {
   source: "agent";
   timestamp: string;
   extras: Record<string, unknown>;
+  tool_call_metadata?: any;
 }
 
 interface ThinkObservationProps {
@@ -28,6 +30,7 @@ export const ThinkObservationComponent: React.FC<ThinkObservationProps> = ({ obs
         <div className="text-xs text-gray-600 dark:text-gray-400">
           {observation.content || "Your thought has been logged."}
         </div>
+        <ToolCallMetadataDisplay metadata={observation.tool_call_metadata} />
       </TrajectoryCard.Body>
     </TrajectoryCard>
   );

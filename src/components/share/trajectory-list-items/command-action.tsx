@@ -3,6 +3,7 @@ import { CSyntaxHighlighter } from "../../syntax-highlighter";
 import { TrajectoryCard } from "../trajectory-card";
 import { CommandAction } from '../../../types/share';
 import { CMarkdown } from '../../markdown';
+import { ToolCallMetadataDisplay } from './tool-call-metadata';
 
 interface CommandActionProps {
   command: CommandAction;
@@ -19,6 +20,7 @@ export const CommandActionComponent: React.FC<CommandActionProps> = ({ command }
       <TrajectoryCard.Body>
         {command.args.thought && <CMarkdown>{command.args.thought}</CMarkdown>}
         <CSyntaxHighlighter language="shell">{command.args.command}</CSyntaxHighlighter>
+        <ToolCallMetadataDisplay metadata={command.tool_call_metadata} llmMetrics={command.llm_metrics} />
       </TrajectoryCard.Body>
     </TrajectoryCard>
   );

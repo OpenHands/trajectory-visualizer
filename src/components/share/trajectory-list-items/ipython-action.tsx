@@ -3,6 +3,7 @@ import { CSyntaxHighlighter } from "../../syntax-highlighter";
 import { TrajectoryCard } from "../trajectory-card";
 import { IPythonAction } from '../../../types/share';
 import { CMarkdown } from '../../markdown';
+import { ToolCallMetadataDisplay } from './tool-call-metadata';
 
 interface IPythonActionProps {
   action: IPythonAction;
@@ -19,6 +20,7 @@ export const IPythonActionComponent: React.FC<IPythonActionProps> = ({ action })
       <TrajectoryCard.Body>
         {action.args.thought && <CMarkdown>{action.args.thought}</CMarkdown>}
         <CSyntaxHighlighter language="python">{action.args.code}</CSyntaxHighlighter>
+        <ToolCallMetadataDisplay metadata={action.tool_call_metadata} llmMetrics={action.llm_metrics} />
       </TrajectoryCard.Body>
     </TrajectoryCard>
   );

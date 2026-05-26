@@ -3,6 +3,7 @@ import { CSyntaxHighlighter } from "../../syntax-highlighter";
 import { TrajectoryCard } from "../trajectory-card";
 import { EditObservation } from '../../../types/share';
 import { DiffViewer } from '../../diff-viewer';
+import { ToolCallMetadataDisplay } from './tool-call-metadata';
 
 interface EditObservationProps {
   observation: EditObservation;
@@ -138,6 +139,7 @@ export const EditObservationComponent: React.FC<EditObservationProps> = ({ obser
             )}
           </div>
         )}
+        <ToolCallMetadataDisplay metadata={observation.tool_call_metadata} />
       </TrajectoryCard.Body>
     </TrajectoryCard>
   );

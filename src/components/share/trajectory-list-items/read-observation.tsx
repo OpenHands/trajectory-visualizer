@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { CSyntaxHighlighter } from "../../syntax-highlighter";
 import { TrajectoryCard } from "../trajectory-card";
 import { ReadObservation } from '../../../types/share';
+import { ToolCallMetadataDisplay } from './tool-call-metadata';
 
 interface ReadObservationProps {
   observation: ReadObservation;
@@ -98,6 +99,7 @@ export const ReadObservationComponent: React.FC<ReadObservationProps> = ({ obser
             </button>
           </div>
         )}
+        <ToolCallMetadataDisplay metadata={observation.tool_call_metadata} />
       </TrajectoryCard.Body>
     </TrajectoryCard>
   );

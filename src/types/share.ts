@@ -58,6 +58,63 @@ export interface AssistantMessage {
     images_urls: string[] | null;
     wait_for_response: boolean;
   };
+  tool_call_metadata?: ToolCallMetadata;
+  llm_metrics?: LlmMetrics;
+}
+
+export interface ToolCallMetadata {
+  function_name?: string;
+  tool_call_id?: string;
+  model_response?: {
+    id?: string;
+    created?: number;
+    model?: string;
+    object?: string;
+    system_fingerprint?: string | null;
+    choices?: Array<{
+      finish_reason?: string;
+      index?: number;
+      message?: {
+        content?: string | null;
+        role?: string;
+        tool_calls?: Array<{
+          index?: number;
+          function?: {
+            arguments?: string;
+            name?: string;
+          };
+          id?: string;
+          type?: string;
+        }>;
+        function_call?: string | null;
+      };
+    }>;
+    usage?: {
+      completion_tokens?: number;
+      prompt_tokens?: number;
+      total_tokens?: number;
+      completion_tokens_details?: any;
+      prompt_tokens_details?: {
+        audio_tokens?: number | null;
+        cached_tokens?: number;
+      } | null;
+      cache_creation_input_tokens?: number;
+      cache_read_input_tokens?: number;
+    };
+    service_tier?: string | null;
+  };
+  total_calls_in_response?: number;
+}
+
+export interface LlmMetrics {
+  accumulated_cost?: number;
+  accumulated_token_usage?: {
+    prompt_tokens?: number;
+    completion_tokens?: number;
+    total_tokens?: number;
+    cache_read_tokens?: number;
+    cache_write_tokens?: number;
+  };
 }
 
 export interface CommandAction {
@@ -71,6 +128,8 @@ export interface CommandAction {
     is_confirmed: "confirmed";
     thought: string;
   };
+  tool_call_metadata?: ToolCallMetadata;
+  llm_metrics?: LlmMetrics;
 }
 
 
@@ -99,6 +158,7 @@ export interface CommandObservation {
     exit_code: number;
     metadata: Record<string, unknown>;
   };
+  tool_call_metadata?: ToolCallMetadata;
 }
 
 export interface IPythonAction {
@@ -113,6 +173,8 @@ export interface IPythonAction {
     kernel_init_code: string;
     thought: string;
   };
+  tool_call_metadata?: ToolCallMetadata;
+  llm_metrics?: LlmMetrics;
 }
 
 export interface IPythonObservation {
@@ -126,6 +188,7 @@ export interface IPythonObservation {
   extras: {
     code: string;
   };
+  tool_call_metadata?: ToolCallMetadata;
 }
 
 export interface FinishAction {
@@ -140,6 +203,8 @@ export interface FinishAction {
     final_thought?: string;
     task_completed?: string;
   };
+  tool_call_metadata?: ToolCallMetadata;
+  llm_metrics?: LlmMetrics;
 }
 
 export interface ErrorObservation {
@@ -162,6 +227,8 @@ export interface ReadAction {
     path: string;
     thought?: string;
   };
+  tool_call_metadata?: ToolCallMetadata;
+  llm_metrics?: LlmMetrics;
 }
 
 export interface ReadObservation {
@@ -175,6 +242,7 @@ export interface ReadObservation {
   extras: {
     path: string;
   };
+  tool_call_metadata?: ToolCallMetadata;
 }
 
 export interface EditAction {
@@ -189,6 +257,8 @@ export interface EditAction {
     new_content: string;
     thought?: string;
   };
+  tool_call_metadata?: ToolCallMetadata;
+  llm_metrics?: LlmMetrics;
 }
 
 export interface EditObservation {
@@ -204,6 +274,7 @@ export interface EditObservation {
     old_content: string;
     new_content: string;
   };
+  tool_call_metadata?: ToolCallMetadata;
 }
 
 export interface ThinkAction {
@@ -215,8 +286,8 @@ export interface ThinkAction {
   args: {
     thought: string;
   };
-  tool_call_metadata?: Record<string, any>;
-  llm_metrics?: Record<string, any>;
+  tool_call_metadata?: ToolCallMetadata;
+  llm_metrics?: LlmMetrics;
 }
 
 export interface ThinkObservation {
@@ -228,7 +299,7 @@ export interface ThinkObservation {
   source: "agent";
   timestamp: string;
   extras: Record<string, unknown>;
-  tool_call_metadata?: Record<string, any>;
+  tool_call_metadata?: ToolCallMetadata;
 }
 
 export type TrajectoryItem = AgentStateChange | UserMessage | AssistantMessage | CommandAction | CommandObservation | IPythonAction | IPythonObservation | FinishAction | Config | ErrorObservation | NullObservation | ReadAction | ReadObservation | EditAction | EditObservation | ThinkAction | ThinkObservation;

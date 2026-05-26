@@ -2,6 +2,7 @@ import React from 'react';
 import { TrajectoryCard } from "../trajectory-card";
 import { AssistantMessage } from '../../../types/share';
 import { CMarkdown } from '../../markdown';
+import { ToolCallMetadataDisplay } from './tool-call-metadata';
 
 interface AssistantMessageProps {
   message: AssistantMessage;
@@ -19,6 +20,7 @@ export const AssistantMessageComponent: React.FC<AssistantMessageProps> = ({ mes
       <TrajectoryCard.Header className="bg-purple-100 dark:bg-purple-800/50 text-purple-800 dark:text-purple-100">Assistant Message</TrajectoryCard.Header>
       <TrajectoryCard.Body>
         <CMarkdown>{content}</CMarkdown>
+        <ToolCallMetadataDisplay metadata={message.tool_call_metadata} llmMetrics={message.llm_metrics} />
       </TrajectoryCard.Body>
     </TrajectoryCard>
   );

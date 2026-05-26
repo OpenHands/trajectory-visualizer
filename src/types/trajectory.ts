@@ -1,5 +1,7 @@
 
 
+import { ToolCallMetadata, LlmMetrics } from './share';
+
 // Common types for trajectory data
 export interface TrajectoryHistoryEntry {
   id?: number;
@@ -31,15 +33,8 @@ export interface TrajectoryHistoryEntry {
   thought?: string;
   // Additional fields
   extras?: Record<string, any>;
-  tool_call_metadata?: {
-    tool_name?: string;
-    tool_args?: Record<string, any>;
-    function_name?: string;
-    tool_call_id?: string;
-    model_response?: any;
-    total_calls_in_response?: number;
-    [key: string]: any;
-  };
+  tool_call_metadata?: ToolCallMetadata;
+  llm_metrics?: LlmMetrics;
   // For backward compatibility
   cause?: string | number;
   success?: boolean;
