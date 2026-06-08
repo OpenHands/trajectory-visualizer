@@ -68,58 +68,30 @@ const JsonlViewer: React.FC<JsonlViewerProps> = ({ content }) => {
   const [trajectoryItems, setTrajectoryItems] = useState<TrajectoryHistoryEntry[]>([]);
   const [settings, setSettings] = useState<JsonlViewerSettingsType>(DEFAULT_JSONL_VIEWER_SETTINGS);
   const [originalEntries, setOriginalEntries] = useState<JsonlEntry[]>([]);
-  const [initializedFromUrl, setInitializedFromUrl] = useState<boolean>(false);
 
-  // Effect to handle instance selection from URL on mount
+  // Apply the entry at `index` as the current selection (state only, no URL writes).
+  const applyEntrySelection = useCallback((index: number, entryList: JsonlEntry[]) => {
+    if (index < 0 || index >= entryList.length) return;
+    setCurrentEntryIndex(index);
+    const selectedEntry = entryList[index];
+    setTrajectoryItems(
+      Array.isArray(selectedEntry.history) ? selectedEntry.history : []
+    );
+  }, []);
+
+  // Sync selection with the `instance` query param. Runs on mount and whenever
+  // the URL changes (browser back/forward) or entries reload.
   useEffect(() => {
-    if (entries.length === 0 || initializedFromUrl) return;
+    if (entries.length === 0) return;
 
     const instanceParam = searchParams.get('instance');
-    if (instanceParam) {
-      // Find the entry with matching instance_id
-      const matchingIndex = entries.findIndex(entry => entry.instance_id === instanceParam);
-      if (matchingIndex !== -1) {
-        setCurrentEntryIndex(matchingIndex);
-        // Update trajectory items
-        const selectedEntry = entries[matchingIndex];
-        if (selectedEntry.history && Array.isArray(selectedEntry.history)) {
-          setTrajectoryItems(selectedEntry.history);
-        } else {
-          setTrajectoryItems([]);
-        }
-      }
-    }
-    // Mark as initialized even if there's no instance param or it wasn't found
-    setInitializedFromUrl(true);
-  }, [entries, initializedFromUrl, searchParams]);
+    if (!instanceParam) return;
 
-  // Effect to handle URL changes (browser back/forward navigation)
-  useEffect(() => {
-    if (!initializedFromUrl) return;
-
-    const instanceParam = searchParams.get('instance');
-    if (instanceParam) {
-      const matchingIndex = entries.findIndex(entry => entry.instance_id === instanceParam);
-      if (matchingIndex !== -1 && matchingIndex !== currentEntryIndex) {
-        setCurrentEntryIndex(matchingIndex);
-        const selectedEntry = entries[matchingIndex];
-        if (selectedEntry.history && Array.isArray(selectedEntry.history)) {
-          setTrajectoryItems(selectedEntry.history);
-        } else {
-          setTrajectoryItems([]);
-        }
-      }
-    } else if (currentEntryIndex !== 0) {
-      // If no instance param and we were not on first entry, go to first
-      setCurrentEntryIndex(0);
-      const firstEntry = entries[0];
-      if (firstEntry.history && Array.isArray(firstEntry.history)) {
-        setTrajectoryItems(firstEntry.history);
-      } else {
-        setTrajectoryItems([]);
-      }
+    const matchingIndex = entries.findIndex(entry => entry.instance_id === instanceParam);
+    if (matchingIndex !== -1 && matchingIndex !== currentEntryIndex) {
+      applyEntrySelection(matchingIndex, entries);
     }
-  }, [searchParams, entries, initializedFromUrl, currentEntryIndex]);
+  }, [searchParams, entries, currentEntryIndex, applyEntrySelection]);
 
   // Parse the JSONL file on component mount or when content changes
   useEffect(() => {
@@ -202,30 +174,20 @@ const JsonlViewer: React.FC<JsonlViewerProps> = ({ content }) => {
     sortAndSetEntries(originalEntries, newSettings);
   };
 
-  // Handle selection of an entry and update URL
+  // Handle selection of an entry and reflect it in the URL.
   const handleSelectEntry = useCallback((index: number) => {
-    setCurrentEntryIndex(index);
-    
-    // Update trajectory items when selecting a new entry
-    if (entries.length > 0 && index < entries.length) {
-      const selectedEntry = entries[index];
-      if (selectedEntry.history && Array.isArray(selectedEntry.history)) {
-        setTrajectoryItems(selectedEntry.history);
-      } else {
-        setTrajectoryItems([]);
-      }
-      
-      // Update URL with the instance parameter
-      if (selectedEntry.instance_id) {
-        setSearchParams({ instance: selectedEntry.instance_id }, { replace: true });
-      } else {
-        // Remove the instance parameter if no instance_id
-        const newParams = new URLSearchParams(searchParams);
-        newParams.delete('instance');
-        setSearchParams(newParams, { replace: true });
-      }
+    if (index < 0 || index >= entries.length) return;
+    applyEntrySelection(index, entries);
+
+    const selectedEntry = entries[index];
+    const newParams = new URLSearchParams(searchParams);
+    if (selectedEntry.instance_id) {
+      newParams.set('instance', selectedEntry.instance_id);
+    } else {
+      newParams.delete('instance');
     }
-  }, [entries, searchParams, setSearchParams]);
+    setSearchParams(newParams, { replace: true });
+  }, [entries, searchParams, setSearchParams, applyEntrySelection]);
 
   // Get entry display name for the sidebar
   const getEntryDisplayName = (entry: JsonlEntry, index: number): string => {

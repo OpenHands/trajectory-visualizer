@@ -1,17 +1,39 @@
-import { render, waitFor, screen } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { render, waitFor, screen, fireEvent } from '@testing-library/react';
+import { MemoryRouter, useLocation } from 'react-router-dom';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import JsonlViewer from '../JsonlViewer';
 
 // Helper to create test JSONL content
-function createJsonlContent(entries: Array<{ instance_id?: string; id?: string; history?: any[] }>): string {
+function createJsonlContent(
+  entries: Array<{ instance_id?: string; id?: string; history?: any[] }>
+): string {
   return entries.map(entry => JSON.stringify(entry)).join('\n');
 }
 
-describe('Instance URL Parameter', () => {
+// Helper component that exposes the current location so tests can assert
+// URL changes made by the component under test.
+function LocationProbe({ onChange }: { onChange: (search: string) => void }) {
+  const location = useLocation();
+  onChange(location.search);
+  return null;
+}
+
+function renderWithRouter(
+  content: string,
+  initialEntries: string[] = ['/'],
+  onLocationChange: (search: string) => void = () => {}
+) {
+  return render(
+    <MemoryRouter initialEntries={initialEntries}>
+      <JsonlViewer content={content} />
+      <LocationProbe onChange={onLocationChange} />
+    </MemoryRouter>
+  );
+}
+
+describe('JsonlViewer instance URL parameter', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // Mock window.matchMedia
     Object.defineProperty(window, 'matchMedia', {
       writable: true,
       value: vi.fn().mockImplementation(query => ({
@@ -27,59 +49,82 @@ describe('Instance URL Parameter', () => {
     });
   });
 
-  it('should initialize with correct entry when URL has instance parameter', async () => {
-    const jsonlContent = createJsonlContent([
-      { instance_id: 'test-instance-1', id: '1', history: [{ action: 'test1', timestamp: '2024-01-01T00:00:00Z' }] },
-      { instance_id: 'test-instance-2', id: '2', history: [{ action: 'test2', timestamp: '2024-01-02T00:00:00Z' }] },
-      { instance_id: 'test-instance-3', id: '3', history: [{ action: 'test3', timestamp: '2024-01-03T00:00:00Z' }] },
-    ]);
+  const baseEntries = [
+    { instance_id: 'test-instance-1', id: '1', history: [{ action: 'a1', timestamp: '2024-01-01T00:00:00Z' }] },
+    { instance_id: 'test-instance-2', id: '2', history: [{ action: 'a2', timestamp: '2024-01-02T00:00:00Z' }] },
+    { instance_id: 'test-instance-3', id: '3', history: [{ action: 'a3', timestamp: '2024-01-03T00:00:00Z' }] },
+  ];
 
-    render(
-      <MemoryRouter initialEntries={['/?instance=test-instance-3']}>
-        <JsonlViewer content={jsonlContent} />
-      </MemoryRouter>
-    );
+  it('selects the entry referenced by the URL on initial render', async () => {
+    const jsonlContent = createJsonlContent(baseEntries);
 
-    // The component should render and select the third entry based on the URL parameter
-    // Wait for the component to render without errors
+    renderWithRouter(jsonlContent, ['/?instance=test-instance-2']);
+
+    // The "currently selected" header in the trajectory pane should show the
+    // matched instance, not the default first entry.
     await waitFor(() => {
-      expect(screen.getByText(/Trajectory/)).toBeTruthy();
-    }, { timeout: 5000 });
+      const headers = screen.getAllByText('Instance #test-instance-2');
+      // One in the sidebar list, one in the trajectory header.
+      expect(headers.length).toBeGreaterThanOrEqual(2);
+    });
   });
 
-  it('should handle invalid instance_id in URL gracefully by falling back to first entry', async () => {
-    const jsonlContent = createJsonlContent([
-      { instance_id: 'test-instance-1', id: '1', history: [{ action: 'test', timestamp: '2024-01-01T00:00:00Z' }] },
-      { instance_id: 'test-instance-2', id: '2', history: [{ action: 'test', timestamp: '2024-01-02T00:00:00Z' }] },
-    ]);
+  it('falls back to the first entry when the URL references an unknown instance', async () => {
+    const jsonlContent = createJsonlContent(baseEntries);
 
-    render(
-      <MemoryRouter initialEntries={['/?instance=nonexistent-instance']}>
-        <JsonlViewer content={jsonlContent} />
-      </MemoryRouter>
-    );
+    renderWithRouter(jsonlContent, ['/?instance=nonexistent']);
 
-    // Should render without crashing - the invalid instance_id is simply ignored
     await waitFor(() => {
-      expect(screen.getByText(/Trajectory/)).toBeTruthy();
-    }, { timeout: 5000 });
+      // First entry is the default, so its name appears in the trajectory header.
+      expect(screen.getAllByText('Instance #test-instance-1').length).toBeGreaterThanOrEqual(2);
+    });
   });
 
-  it('should render without errors when URL has no instance parameter', async () => {
-    const jsonlContent = createJsonlContent([
-      { instance_id: 'instance-a', id: '1', history: [{ action: 'action1', timestamp: '2024-01-01T00:00:00Z' }] },
-      { instance_id: 'instance-b', id: '2', history: [{ action: 'action2', timestamp: '2024-01-02T00:00:00Z' }] },
-    ]);
+  it('updates the URL with the instance_id when the user selects an entry', async () => {
+    const jsonlContent = createJsonlContent(baseEntries);
+    let lastSearch = '';
 
-    render(
-      <MemoryRouter>
-        <JsonlViewer content={jsonlContent} />
-      </MemoryRouter>
-    );
+    renderWithRouter(jsonlContent, ['/'], (search) => { lastSearch = search; });
 
-    // Should render trajectory viewer without errors
+    // Wait for the sidebar to render all entries.
+    await waitFor(() => {
+      expect(screen.getAllByText('Instance #test-instance-3').length).toBeGreaterThanOrEqual(1);
+    });
+
+    // Click the third entry in the sidebar.
+    const sidebarEntry = screen.getAllByText('Instance #test-instance-3')[0];
+    fireEvent.click(sidebarEntry);
+
+    await waitFor(() => {
+      expect(lastSearch).toBe('?instance=test-instance-3');
+    });
+  });
+
+  it('renders without errors when the URL has no instance parameter', async () => {
+    const jsonlContent = createJsonlContent(baseEntries);
+
+    renderWithRouter(jsonlContent);
+
     await waitFor(() => {
       expect(screen.getByText(/Trajectory/)).toBeTruthy();
-    }, { timeout: 5000 });
+    });
+  });
+
+  it('preserves unrelated query parameters when updating instance', async () => {
+    const jsonlContent = createJsonlContent(baseEntries);
+    let lastSearch = '';
+
+    renderWithRouter(jsonlContent, ['/?foo=bar'], (search) => { lastSearch = search; });
+
+    await waitFor(() => {
+      expect(screen.getAllByText('Instance #test-instance-2').length).toBeGreaterThanOrEqual(1);
+    });
+
+    fireEvent.click(screen.getAllByText('Instance #test-instance-2')[0]);
+
+    await waitFor(() => {
+      expect(lastSearch).toContain('foo=bar');
+      expect(lastSearch).toContain('instance=test-instance-2');
+    });
   });
 });
