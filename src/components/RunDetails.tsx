@@ -12,9 +12,10 @@ interface RunDetailsProps {
   repo: string;
   run: WorkflowRun;
   initialContent?: any;
+  onSelectedJsonlFileChange?: (file: string) => void;
 }
 
-const RunDetails: React.FC<RunDetailsProps> = ({ owner, repo, run, initialContent }) => {
+const RunDetails: React.FC<RunDetailsProps> = ({ owner, repo, run, initialContent, onSelectedJsonlFileChange }) => {
   const [runDetails, setRunDetails] = useState<RunDetailsResponse | null>(null);
   const [artifactContent, setArtifactContent] = useState<any | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -117,6 +118,7 @@ const RunDetails: React.FC<RunDetailsProps> = ({ owner, repo, run, initialConten
           content={artifactContent.content.jsonlContent} 
           jsonlFiles={artifactContent.content.jsonlFiles}
           selectedJsonlFile={artifactContent.content.selectedJsonlFile}
+          onSelectedJsonlFileChange={onSelectedJsonlFileChange}
         />
       </div>
     );

@@ -54,8 +54,10 @@ export function extractFromTar(data: Uint8Array): { jsonlFiles: Record<string, s
   let pendingLongName: string | null = null;
   const jsonlFiles: Record<string, string> = {};
   let reportContent: any | null = null;
-  let hasPrimaryOutput = false;
-  let largestJsonlSize = 0;
+
+  // Matches `output.jsonl` or `output.critic_attempt_N.jsonl` (any N),
+  // either at the top level or nested under a directory.
+  const jsonlPattern = /(?:^|\/)output(?:\.critic_attempt_\d+)?\.jsonl$/;
 
   while (offset + blockSize <= data.length) {
     const header = parseTarHeader(data, offset);
@@ -73,33 +75,15 @@ export function extractFromTar(data: Uint8Array): { jsonlFiles: Record<string, s
         pendingLongName = null;
         const lowerName = fileName.toLowerCase();
 
-        // Match output.jsonl files - include main output and critic_attempt files
-        const isJsonl = lowerName.endsWith('/output.jsonl') || 
-                        lowerName === 'output.jsonl' ||
-                        lowerName.endsWith('/output.critic_attempt_1.jsonl') ||
-                        lowerName === 'output.critic_attempt_1.jsonl' ||
-                        lowerName.endsWith('/output.critic_attempt_2.jsonl') ||
-                        lowerName === 'output.critic_attempt_2.jsonl' ||
-                        lowerName.endsWith('/output.critic_attempt_3.jsonl') ||
-                        lowerName === 'output.critic_attempt_3.jsonl';
+        const isJsonl = jsonlPattern.test(lowerName);
         const isReport = lowerName.includes('output.report.json') || (lowerName.includes('report') && lowerName.endsWith('.json'));
 
         if (isJsonl || isReport) {
           const content = new TextDecoder('utf8').decode(data.slice(offset, offset + header.size));
-          
+
           if (isJsonl) {
             // Store each JSONL file with its name as the key
             jsonlFiles[fileName] = content;
-            
-            // Track largest output.jsonl
-            if (header.size > largestJsonlSize) {
-              largestJsonlSize = header.size;
-            }
-            
-            // Check if this is the primary output.jsonl (not a critic file)
-            if (!hasPrimaryOutput && !lowerName.includes('critic')) {
-              hasPrimaryOutput = true;
-            }
           }
           if (isReport) {
             try {
@@ -112,14 +96,6 @@ export function extractFromTar(data: Uint8Array): { jsonlFiles: Record<string, s
       }
 
       offset += paddedSize;
-    }
-
-    // Early exit if we found the main output.jsonl, any critic files, and report with sufficient content
-    if (hasPrimaryOutput && reportContent && largestJsonlSize > 100000) {
-      // Continue to find critic files if there might be more
-      if (Object.keys(jsonlFiles).length >= 4) {
-        break;
-      }
     }
   }
 

@@ -59,29 +59,55 @@ interface JsonlViewerProps {
   content: string;
   jsonlFiles?: Record<string, string>;
   selectedJsonlFile?: string;
+  onSelectedJsonlFileChange?: (file: string) => void;
 }
 
-const JsonlViewer: React.FC<JsonlViewerProps> = ({ content, jsonlFiles, selectedJsonlFile }) => {
-  const availableJsonlFiles = jsonlFiles;
+const JsonlViewer: React.FC<JsonlViewerProps> = ({
+  content,
+  jsonlFiles,
+  selectedJsonlFile,
+  onSelectedJsonlFileChange,
+}) => {
   const [entries, setEntries] = useState<JsonlEntry[]>([]);
   const [currentEntryIndex, setCurrentEntryIndex] = useState<number>(0);
   const [error, setError] = useState<string | null>(null);
   const [trajectoryItems, setTrajectoryItems] = useState<TrajectoryHistoryEntry[]>([]);
-  const [settings, setSettings] = useState<JsonlViewerSettingsType>(DEFAULT_JSONL_VIEWER_SETTINGS);
+  const [settings, setSettings] = useState<JsonlViewerSettingsType>({
+    ...DEFAULT_JSONL_VIEWER_SETTINGS,
+    selectedJsonlFile,
+  });
   const [currentContent, setCurrentContent] = useState(content);
 
-  // Parse the JSONL file on component mount or when content changes
+  // Reset content baseline when the upstream content prop changes
   useEffect(() => {
     setCurrentContent(content);
   }, [content]);
 
-  // Re-parse when selected file changes
+  // Keep settings.selectedJsonlFile in sync if the upstream prop changes
+  // (e.g. a new archive is loaded with a different default file).
   useEffect(() => {
-    if (jsonlFiles && selectedJsonlFile && jsonlFiles[selectedJsonlFile]) {
-      const newContent = jsonlFiles[selectedJsonlFile];
-      setCurrentContent(newContent);
+    setSettings(prev =>
+      prev.selectedJsonlFile === selectedJsonlFile
+        ? prev
+        : { ...prev, selectedJsonlFile }
+    );
+  }, [selectedJsonlFile]);
+
+  // Switch the parsed content whenever the user picks a different file
+  // in the Settings dropdown (settings.selectedJsonlFile is the source of truth).
+  useEffect(() => {
+    const fileKey = settings.selectedJsonlFile;
+    if (jsonlFiles && fileKey && jsonlFiles[fileKey]) {
+      setCurrentContent(jsonlFiles[fileKey]);
     }
-  }, [selectedJsonlFile, jsonlFiles]);
+  }, [settings.selectedJsonlFile, jsonlFiles]);
+
+  // Notify parent so it can persist the choice (e.g. in the URL)
+  useEffect(() => {
+    if (onSelectedJsonlFileChange && settings.selectedJsonlFile !== undefined) {
+      onSelectedJsonlFileChange(settings.selectedJsonlFile);
+    }
+  }, [settings.selectedJsonlFile, onSelectedJsonlFileChange]);
 
   // Parse content when currentContent or settings change
   useEffect(() => {
@@ -297,7 +323,7 @@ const JsonlViewer: React.FC<JsonlViewerProps> = ({ content, jsonlFiles, selected
       <JsonlViewerSettings 
         settings={settings} 
         onSettingsChange={handleSettingsChange}
-        availableJsonlFiles={availableJsonlFiles}
+        availableJsonlFiles={jsonlFiles}
       />
       
       {/* Main content with sidebar and metadata */}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { BrowserRouter, Routes, Route, useParams, useNavigate, useLocation } from 'react-router-dom';
 import RepositorySelector from './components/RepositorySelector';
 import { WorkflowRunsList } from './components/workflow-runs';
@@ -362,7 +362,23 @@ const App: React.FC<{ router?: boolean }> = ({ router = true }) => {
     const location = useLocation();
     const [uploadedContent, setUploadedContent] = useState<UploadContent | null>(null);
     const [isLoadingTrajectory, setIsLoadingTrajectory] = useState<boolean>(false);
-    
+
+    // Update the `outputFile` URL parameter when the user picks a different
+    // JSONL file in the Settings dropdown. This keeps the URL shareable.
+    const handleSelectedJsonlFileChange = useCallback((file: string) => {
+      const params = new URLSearchParams(location.search);
+      if (file) {
+        params.set('outputFile', file);
+      } else {
+        params.delete('outputFile');
+      }
+      const search = params.toString();
+      navigate(
+        { pathname: location.pathname, search: search ? `?${search}` : '' },
+        { replace: true }
+      );
+    }, [location.pathname, location.search, navigate]);
+
     // Check for URL parameters and localStorage on initial load
     useEffect(() => {
       // Keep track of load count to prevent cycles
@@ -394,12 +410,20 @@ const App: React.FC<{ router?: boolean }> = ({ router = true }) => {
             const parsedData = JSON.parse(decodedData);
             console.log('Found trajectory data in URL:', parsedData);
             
-            // Apply outputFile selection if present in URL
-            if (outputFileParam && parsedData?.content?.jsonlFiles) {
+            // Apply outputFile selection if present in URL.
+            // Older serialised payloads may not have `jsonlFiles`, so guard
+            // for its existence and that it's a non-empty object.
+            const jsonlFiles = parsedData?.content?.jsonlFiles;
+            if (
+              outputFileParam &&
+              jsonlFiles &&
+              typeof jsonlFiles === 'object' &&
+              Object.keys(jsonlFiles).length > 0
+            ) {
               const selectedFile = decodeURIComponent(outputFileParam);
-              if (parsedData.content.jsonlFiles[selectedFile]) {
+              if (jsonlFiles[selectedFile]) {
                 parsedData.content.selectedJsonlFile = selectedFile;
-                parsedData.content.jsonlContent = parsedData.content.jsonlFiles[selectedFile];
+                parsedData.content.jsonlContent = jsonlFiles[selectedFile];
                 console.log('Setting selected output file:', selectedFile);
               }
             }
@@ -407,8 +431,14 @@ const App: React.FC<{ router?: boolean }> = ({ router = true }) => {
             // Set the uploaded content
             setUploadedContent(parsedData);
             
-            // Clear the URL parameter to avoid reloading the same data
-            navigate(location.pathname, { replace: true });
+            // Preserve the outputFile param so the selection survives reloads/sharing
+            const preservedParams = new URLSearchParams();
+            if (outputFileParam) preservedParams.set('outputFile', outputFileParam);
+            const preservedSearch = preservedParams.toString();
+            navigate(
+              { pathname: location.pathname, search: preservedSearch ? `?${preservedSearch}` : '' },
+              { replace: true }
+            );
             return;
           } catch (error) {
             console.error('Failed to parse data parameter:', error);
@@ -756,6 +786,7 @@ const App: React.FC<{ router?: boolean }> = ({ router = true }) => {
                   workflow_name: 'Local Trajectory'
                 }}
                 initialContent={uploadedContent}
+                onSelectedJsonlFileChange={handleSelectedJsonlFileChange}
               />
             </div>
           ) : owner && repo ? (

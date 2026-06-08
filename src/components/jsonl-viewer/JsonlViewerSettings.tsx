@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   COMMON_SORT_FIELDS, 
   COMMON_DISPLAY_FIELDS 
@@ -30,6 +30,12 @@ const JsonlViewerSettings: React.FC<JsonlViewerSettingsProps> = ({
   const [displayFields, setDisplayFields] = useState<string[]>(settings.displayFields);
   const [newField, setNewField] = useState('');
   const [selectedJsonlFile, setSelectedJsonlFile] = useState(settings.selectedJsonlFile || '');
+
+  // Keep the dropdown in sync if the selection is changed externally
+  // (e.g. via a URL parameter or when a new archive is loaded).
+  useEffect(() => {
+    setSelectedJsonlFile(settings.selectedJsonlFile || '');
+  }, [settings.selectedJsonlFile]);
 
   const handleSave = () => {
     onSettingsChange({
