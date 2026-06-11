@@ -2,6 +2,7 @@ import React from 'react';
 import { CSyntaxHighlighter } from "../../syntax-highlighter";
 import { TrajectoryCard } from "../trajectory-card";
 import { CMarkdown } from '../../markdown';
+import { ToolCallMetadataDisplay } from './tool-call-metadata';
 
 interface AgentActionProps {
   action: any;
@@ -52,6 +53,7 @@ export const AgentActionComponent: React.FC<AgentActionProps> = ({ action }) => 
             <p className="text-sm text-gray-700 dark:text-gray-300">{action.summary}</p>
           </>
         )}
+        <ToolCallMetadataDisplay metadata={action.tool_call_metadata} llmMetrics={action.llm_metrics} />
       </TrajectoryCard.Body>
     </TrajectoryCard>
   );

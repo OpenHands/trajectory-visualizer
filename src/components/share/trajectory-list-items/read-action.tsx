@@ -3,6 +3,7 @@ import { CSyntaxHighlighter } from "../../syntax-highlighter";
 import { TrajectoryCard } from "../trajectory-card";
 import { ReadAction } from '../../../types/share';
 import { CMarkdown } from '../../markdown';
+import { ToolCallMetadataDisplay } from './tool-call-metadata';
 
 interface ReadActionProps {
   item: ReadAction;
@@ -19,6 +20,7 @@ export const ReadActionComponent: React.FC<ReadActionProps> = ({ item }) => {
       <TrajectoryCard.Body>
         {item.args.thought && <CMarkdown>{item.args.thought}</CMarkdown>}
         <CSyntaxHighlighter language="shell">{`cat ${item.args.path}`}</CSyntaxHighlighter>
+        <ToolCallMetadataDisplay metadata={item.tool_call_metadata} llmMetrics={item.llm_metrics} />
       </TrajectoryCard.Body>
     </TrajectoryCard>
   );

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { CSyntaxHighlighter } from "../../syntax-highlighter";
 import { TrajectoryCard } from "../trajectory-card";
 import { CommandObservation } from '../../../types/share';
+import { ToolCallMetadataDisplay } from './tool-call-metadata';
 
 interface CommandObservationProps {
   observation: CommandObservation;
@@ -70,6 +71,7 @@ export const CommandObservationComponent: React.FC<CommandObservationProps> = ({
         <div className="text-xs text-gray-500 dark:text-gray-400 mt-2">
           Exit code: {String(observation.extras?.metadata?.exit_code ?? observation.extras?.exit_code ?? 'N/A')}
         </div>
+        <ToolCallMetadataDisplay metadata={observation.tool_call_metadata} />
       </TrajectoryCard.Body>
     </TrajectoryCard>
   );

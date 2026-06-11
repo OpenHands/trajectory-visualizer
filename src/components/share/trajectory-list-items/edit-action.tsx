@@ -2,6 +2,7 @@ import React from 'react';
 import { TrajectoryCard } from "../trajectory-card";
 import { EditAction } from '../../../types/share';
 import { CMarkdown } from '../../markdown';
+import { ToolCallMetadataDisplay } from './tool-call-metadata';
 
 interface EditActionProps {
   item: EditAction;
@@ -30,6 +31,7 @@ export const EditActionComponent: React.FC<EditActionProps> = ({ item }) => {
         <div className="text-xs text-gray-600 dark:text-gray-300 mt-2">
           This action will edit the file. The results will be shown in the corresponding observation.
         </div>
+        <ToolCallMetadataDisplay metadata={item.tool_call_metadata} llmMetrics={item.llm_metrics} />
       </TrajectoryCard.Body>
     </TrajectoryCard>
   );

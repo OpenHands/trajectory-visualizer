@@ -3,6 +3,7 @@ import { CSyntaxHighlighter } from "../../syntax-highlighter";
 import { TrajectoryCard } from "../trajectory-card";
 import { FinishAction } from '../../../types/share';
 import { CMarkdown } from '../../markdown';
+import { ToolCallMetadataDisplay } from './tool-call-metadata';
 
 interface FinishActionProps {
   action: FinishAction;
@@ -32,6 +33,7 @@ export const FinishActionComponent: React.FC<FinishActionProps> = ({ action }) =
         <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
           Task completed: {action.args.task_completed || 'unknown'}
         </div>
+        <ToolCallMetadataDisplay metadata={action.tool_call_metadata} llmMetrics={action.llm_metrics} />
       </TrajectoryCard.Body>
     </TrajectoryCard>
   );

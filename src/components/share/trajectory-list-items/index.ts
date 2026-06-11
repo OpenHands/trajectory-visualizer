@@ -19,3 +19,4 @@ export * from "./system-prompt";
 export * from "./agent-thought";
 export * from "./agent-action";
 export * from "./agent-context";
+export * from "./tool-call-metadata";

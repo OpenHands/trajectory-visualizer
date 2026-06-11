@@ -2,6 +2,7 @@ import React from 'react';
 import { CSyntaxHighlighter } from "../../syntax-highlighter";
 import { TrajectoryCard } from "../trajectory-card";
 import { CMarkdown } from '../../markdown';
+import { ToolCallMetadataDisplay } from './tool-call-metadata';
 
 interface AgentThoughtProps {
   thought: any;
@@ -46,6 +47,7 @@ export const AgentThoughtComponent: React.FC<AgentThoughtProps> = ({ thought }) 
             </CSyntaxHighlighter>
           </>
         )}
+        <ToolCallMetadataDisplay metadata={thought.tool_call_metadata} llmMetrics={thought.llm_metrics} />
       </TrajectoryCard.Body>
     </TrajectoryCard>
   );

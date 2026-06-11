@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { CSyntaxHighlighter } from "../../syntax-highlighter";
 import { TrajectoryCard } from "../trajectory-card";
 import { IPythonObservation } from '../../../types/share';
+import { ToolCallMetadataDisplay } from './tool-call-metadata';
 
 interface IPythonObservationProps {
   observation: IPythonObservation;
@@ -66,6 +67,7 @@ export const IPythonObservationComponent: React.FC<IPythonObservationProps> = ({
             </button>
           </div>
         )}
+        <ToolCallMetadataDisplay metadata={observation.tool_call_metadata} />
       </TrajectoryCard.Body>
     </TrajectoryCard>
   );
