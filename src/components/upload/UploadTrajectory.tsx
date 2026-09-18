@@ -44,6 +44,12 @@ export const UploadTrajectory: React.FC<UploadTrajectoryProps> = ({
       // Return the history array for the trajectory viewer
       return content.history;
     }
+
+    // Check if it is an ATIF trajectory (steps array)
+    if (content.steps && Array.isArray(content.steps)) {
+      console.log('Detected ATIF trajectory format - using trajectory viewer');
+      return content.steps;
+    }
     
     // If it's not in a recognized format, return as is and let the converter handle it
     console.log('Unknown format, passing to converter as-is');
