@@ -7,6 +7,7 @@ interface TrajectoryTempateProps {
   className?: React.HTMLAttributes<HTMLDivElement>["className"];
   originalJson?: any;
   defaultCollapsed?: boolean;
+  collapsedPreview?: React.ReactNode;
   timestamp?: string;
 }
 
@@ -15,7 +16,7 @@ interface TrajectoryCardType extends React.FC<TrajectoryTempateProps> {
   Body: React.FC<TrajectoryCardBodyProps>;
 }
 
-export const TrajectoryCard: TrajectoryCardType = ({ children, className, originalJson, defaultCollapsed = false, timestamp }) => {
+export const TrajectoryCard: TrajectoryCardType = ({ children, className, originalJson, defaultCollapsed = false, collapsedPreview, timestamp }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
   
@@ -67,12 +68,12 @@ export const TrajectoryCard: TrajectoryCardType = ({ children, className, origin
       )}
       
       {/* Render body only if not collapsed, otherwise show hint */}
-      {!isCollapsed ? (
-        body
-      ) : (
-        <div className="px-2 py-1 text-[10px] text-gray-500 dark:text-gray-400 italic">
-          Content collapsed. Click the arrow icon in the top right to expand.
-        </div>
+      {!isCollapsed ? body : (
+        collapsedPreview || (
+          <div className="px-2 py-1 text-[10px] text-gray-500 dark:text-gray-400 italic">
+            Content collapsed. Click the arrow icon in the top right to expand.
+          </div>
+        )
       )}
       
       {originalJson && (
