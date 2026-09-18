@@ -26,7 +26,8 @@ describe('TrajectoryList', () => {
 
     expect(screen.getByText('System step')).toBeInTheDocument();
     expect(screen.getByText('Agent step')).toBeInTheDocument();
-    expect(screen.getByText('System prompt')).toBeInTheDocument();
+    expect(screen.queryByText('System prompt')).not.toBeInTheDocument();
+    expect(screen.getByText('Content collapsed. Click the arrow icon in the top right to expand.')).toBeInTheDocument();
     expect(screen.getByText(/function_name/)).toBeInTheDocument();
   });
 });

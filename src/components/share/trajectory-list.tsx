@@ -105,6 +105,7 @@ export const TrajectoryList: React.FC<TrajectoryListProps> = ({ trajectory }) =>
                     key={index}
                     originalJson={item}
                     timestamp={timestamp}
+                    defaultCollapsed={source === "system"}
                     className="bg-gray-50 dark:bg-gray-900/20 border border-gray-200 dark:border-gray-700"
                   >
                     <TrajectoryCard.Header className="bg-gray-100 dark:bg-gray-800/50 text-gray-800 dark:text-gray-100">
