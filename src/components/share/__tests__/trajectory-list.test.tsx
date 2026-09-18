@@ -18,16 +18,18 @@ describe('TrajectoryList', () => {
             timestamp: '2026-09-14T02:40:44.835462',
             source: 'agent',
             message: '',
-            tool_calls: [{ function_name: 'terminal' }]
+            tool_calls: [{ function_name: 'terminal', arguments: { command: 'ls' } }],
+            observation: { results: [{ content: 'file.txt' }] }
           }
         ] as any}
       />
     );
 
-    expect(screen.getByText('System step')).toBeInTheDocument();
-    expect(screen.getByText('Agent step')).toBeInTheDocument();
+    expect(screen.getByText('System step #1')).toBeInTheDocument();
+    expect(screen.getByText('Agent step #2')).toBeInTheDocument();
     expect(screen.queryByText('System prompt')).not.toBeInTheDocument();
     expect(screen.getByText('Content collapsed. Click the arrow icon in the top right to expand.')).toBeInTheDocument();
-    expect(screen.getByText(/function_name/)).toBeInTheDocument();
+    expect(screen.getByText('terminal')).toBeInTheDocument();
+    expect(screen.getByText('file.txt')).toBeInTheDocument();
   });
 });

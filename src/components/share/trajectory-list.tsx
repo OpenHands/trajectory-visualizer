@@ -30,6 +30,7 @@ import {
   EditObservationComponent,
   ErrorObservationComponent
 } from "./trajectory-list-items";
+import { AtifStepComponent } from "./trajectory-list-items/atif-step";
 import { TrajectoryCard } from "./trajectory-card";
 import { TrajectoryItem } from '../../types/share';
 
@@ -68,7 +69,10 @@ export const TrajectoryList: React.FC<TrajectoryListProps> = ({ trajectory }) =>
         <div className="flex-1 overflow-y-auto p-4">
           <div className="flex flex-col gap-4">
             {filteredTrajectory.map((item, index) => {
-              if (isAgentStateChange(item)) {
+              const rawItem = item as unknown as Record<string, unknown>;
+              if (typeof rawItem.step_id === "number" && typeof rawItem.source === "string") {
+                return <AtifStepComponent key={index} step={item as any} />;
+              } else if (isAgentStateChange(item)) {
                 return <AgentStateChangeComponent key={index} state={item} />;
               } else if (isUserMessage(item)) {
                 return <UserMessageComponent key={index} message={item} />;
@@ -95,7 +99,6 @@ export const TrajectoryList: React.FC<TrajectoryListProps> = ({ trajectory }) =>
               } else if (isEditObservation(item)) {
                 return <EditObservationComponent key={index} observation={item} />;
               } else {
-                const rawItem = item as unknown as Record<string, unknown>;
                 const source = typeof rawItem.source === "string" ? rawItem.source : undefined;
                 const timestamp = typeof rawItem.timestamp === "string" ? rawItem.timestamp : undefined;
                 const message = typeof rawItem.message === "string" ? rawItem.message : undefined;
