@@ -18,8 +18,8 @@ describe('TrajectoryList', () => {
             timestamp: '2026-09-14T02:40:44.835462',
             source: 'agent',
             message: '',
-            tool_calls: [{ function_name: 'terminal', arguments: { command: 'ls' } }],
-            observation: { results: [{ content: 'file 1\nfile 2\nfile 3\nfile 4\nfile 5\nfile 6' }] }
+            tool_calls: [{ function_name: 'terminal', arguments: { command: 'command 1\ncommand 2\ncommand 3\ncommand 4\ncommand 5\ncommand 6\ncommand 7\ncommand 8\ncommand 9\ncommand 10\ncommand 11' } }],
+            observation: { results: [{ content: 'file 1\nfile 2\nfile 3\nfile 4\nfile 5\nfile 6\nfile 7\nfile 8\nfile 9\nfile 10\nfile 11' }] }
           },
           {
             step_id: 3,
@@ -37,7 +37,7 @@ describe('TrajectoryList', () => {
     expect(screen.getByText('Agent step #2')).toBeInTheDocument();
     expect(document.body.textContent).toContain('System line 1');
     expect(document.body.textContent).not.toContain('System line 6');
-    expect(screen.getAllByText('Showing the first 5 lines. Expand to see more.')).toHaveLength(2);
+    expect(screen.getAllByRole('button', { name: 'Show more' })).toHaveLength(3);
     expect(document.body.textContent).toContain('terminal');
     expect(document.body.textContent).toContain('file 1');
     expect(screen.getByText('think')).toBeInTheDocument();
