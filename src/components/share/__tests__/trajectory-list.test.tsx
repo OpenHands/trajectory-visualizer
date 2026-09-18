@@ -28,6 +28,14 @@ describe('TrajectoryList', () => {
             message: '',
             tool_calls: [{ function_name: 'think', arguments: { thought: 'I should inspect the next file.' } }],
             observation: { results: [{ content: 'Your thought has been logged.' }] }
+          },
+          {
+            step_id: 4,
+            timestamp: '2026-09-14T02:40:44.835462',
+            source: 'agent',
+            message: '',
+            tool_calls: [{ function_name: 'file_editor', arguments: { command: 'view', path: '/app/data/README.md' } }],
+            observation: { results: [{ content: 'README contents' }] }
           }
         ] as any}
       />
@@ -42,5 +50,10 @@ describe('TrajectoryList', () => {
     expect(document.body.textContent).toContain('file 1');
     expect(screen.getByText('think')).toBeInTheDocument();
     expect(screen.getByText('I should inspect the next file.')).toBeInTheDocument();
+    expect(screen.getByText('Agent step #4')).toBeInTheDocument();
+    expect(screen.getByText('Operation:')).toBeInTheDocument();
+    expect(screen.getByText('view')).toBeInTheDocument();
+    expect(screen.getByText('/app/data/README.md')).toBeInTheDocument();
+    expect(screen.getByText('README contents')).toBeInTheDocument();
   });
 });

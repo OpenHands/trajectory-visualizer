@@ -42,6 +42,26 @@ const getArgument = (toolCall: AtifToolCall, name: string): unknown => {
   return (toolCall.arguments as Record<string, unknown>)[name];
 };
 
+const renderFileEditorArguments = (toolCall: AtifToolCall) => {
+  const command = getArgument(toolCall, 'command');
+  const path = getArgument(toolCall, 'path');
+  const patch = getArgument(toolCall, 'patch');
+  const fileText = getArgument(toolCall, 'file_text');
+
+  return (
+    <div className="p-2 space-y-1 text-xs text-gray-700 dark:text-gray-300">
+      {typeof command === 'string' && (
+        <div><span className="text-gray-500 dark:text-gray-400">Operation:</span> <code>{command}</code></div>
+      )}
+      {typeof path === 'string' && (
+        <div><span className="text-gray-500 dark:text-gray-400">Path:</span> <code className="break-all">{path}</code></div>
+      )}
+      {typeof patch === 'string' && <ExpandableContent content={patch} maxLines={10} language="diff" />}
+      {typeof fileText === 'string' && <ExpandableContent content={fileText} maxLines={10} language="text" />}
+    </div>
+  );
+};
+
 export const AtifStepComponent: React.FC<AtifStepProps> = ({ step }) => {
   const source = step.source || 'unknown';
   const toolCalls = Array.isArray(step.tool_calls) ? step.tool_calls : [];
@@ -78,7 +98,9 @@ export const AtifStepComponent: React.FC<AtifStepProps> = ({ step }) => {
                 <div className="px-2 py-1 bg-amber-50 dark:bg-amber-900/20 text-xs font-medium text-amber-800 dark:text-amber-200">
                   {toolCall.function_name || 'Unnamed tool'}
                 </div>
-                {toolCall.function_name === 'think' && typeof getArgument(toolCall, 'thought') === 'string' ? (
+                {toolCall.function_name === 'file_editor' ? (
+                  renderFileEditorArguments(toolCall)
+                ) : toolCall.function_name === 'think' && typeof getArgument(toolCall, 'thought') === 'string' ? (
                   <div className="p-2 text-sm text-gray-700 dark:text-gray-300">
                     <ExpandableContent
                       content={getArgument(toolCall, 'thought') as string}
@@ -101,7 +123,7 @@ export const AtifStepComponent: React.FC<AtifStepProps> = ({ step }) => {
         {results.length > 0 && (
           <div className="space-y-2">
             <div className="text-xs font-medium text-gray-500 dark:text-gray-400">
-              Tool output ({results.length})
+              {toolCalls.some(toolCall => toolCall.function_name === 'file_editor') ? 'File editor output' : 'Tool output'} ({results.length})
             </div>
             {results.map((result, index) => (
               <ExpandableContent
