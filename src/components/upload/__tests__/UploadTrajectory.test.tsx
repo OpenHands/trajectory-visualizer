@@ -108,6 +108,44 @@ describe('UploadTrajectory', () => {
     });
   });
 
+  it('handles ATIF trajectories correctly', async () => {
+    render(<UploadTrajectory onUpload={mockOnUpload} />);
+
+    const steps = [
+      {
+        step_id: 1,
+        timestamp: '2026-09-14T02:40:44.835462',
+        source: 'system',
+        message: 'System prompt'
+      },
+      {
+        step_id: 2,
+        timestamp: '2026-09-14T02:40:44.835462',
+        source: 'user',
+        message: 'User request'
+      }
+    ];
+    const file = new File(
+      [JSON.stringify({ schema_version: 'ATIF-v1.5', steps })],
+      'trajectory.json',
+      { type: 'application/json' }
+    );
+
+    const dropzone = screen.getByText(/drag and drop a trajectory file here/i).parentElement!.parentElement!;
+    await act(async () => {
+      fireEvent.drop(dropzone, createDropEvent([file]));
+    });
+
+    await waitFor(() => {
+      expect(mockOnUpload).toHaveBeenCalledWith({
+        content: {
+          fileType: 'trajectory',
+          trajectoryData: steps
+        }
+      });
+    });
+  });
+
   it('handles invalid JSON file', async () => {
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});

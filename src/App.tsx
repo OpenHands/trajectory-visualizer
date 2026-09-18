@@ -345,6 +345,17 @@ const App: React.FC<{ router?: boolean }> = ({ router = true }) => {
         }
       };
     }
+
+    // Check if it is an ATIF trajectory (steps array)
+    if (data.steps && Array.isArray(data.steps)) {
+      console.log('Detected ATIF trajectory format - using trajectory viewer');
+      return {
+        content: {
+          trajectoryData: data.steps,
+          fileType: 'trajectory'
+        }
+      };
+    }
     
     // If it's not in a recognized format, return as is
     console.log('Unknown format, passing as trajectory data');
@@ -829,4 +840,4 @@ const App: React.FC<{ router?: boolean }> = ({ router = true }) => {
   return router ? <BrowserRouter>{content}</BrowserRouter> : content;
 };
 
-export default App; 
+export default App;
